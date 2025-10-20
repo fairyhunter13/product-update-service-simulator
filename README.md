@@ -82,6 +82,7 @@ curl -i "http://localhost:8080/products/p-1"
   - Non-blocking enqueue to a slice-backed backlog with channel handoff
   - Soft cap: `QUEUE_HIGH_WATERMARK` emits warnings (no 503, no drops)
   - Monotonic sequence assigned at intake for last-write-wins
+  - Production note: replace the in-memory queue with RabbitMQ. Use durable queues, publisher confirms, manual acks, dead-lettering with retry backoff, and keep consumer-side sequence gating (only `event.sequence > last_sequence` mutates state) to achieve effective exactly-once with external stores.
 - Dynamic worker scaling
   - Scale up when `backlog_size > worker_count * SCALE_UP_BACKLOG_PER_WORKER`
   - Scale down after `SCALE_DOWN_IDLE_TICKS` intervals of zero backlog
@@ -103,19 +104,20 @@ curl -i "http://localhost:8080/products/p-1"
 
 ## Production Considerations
 
-- Queuing (Redpanda/Kafka)
-  - Exactly-once processing (EoP) path:
-    - Enable idempotent producers (`enable.idempotence=true`) and `acks=all` with `min.insync.replicas>=2`.
-    - Use transactional producers with stable `transactional.id` per instance; wrap publish and offset commits in a single transaction: `beginTransaction` → produce events → `sendOffsetsToTransaction` → `commitTransaction` (or abort).
-    - Consumers run with isolation level `read_committed` to avoid reading aborted records.
+- Queuing (RabbitMQ)
+  - Durability & confirms:
+    - Declare durable exchanges/queues; publish persistent messages.
+    - Use publisher confirms to guarantee broker acceptance; handle nacks/retries.
   - Idempotency and ordering:
-    - Partition by `product_id` key to keep per-product ordering within a partition.
-    - Use a deterministic idempotency key (e.g., `product_id+sequence`) and gate updates so only `event.sequence > last_sequence` mutates state (consumer-side dedupe).
-    - Optionally persist last processed sequence per `product_id` (DB row or a compacted topic) to survive restarts and guarantee at-least-once + idempotent → effectively exactly-once.
+    - Use a deterministic idempotency key (e.g., `message_id = product_id+sequence`) and the service’s sequence gating so only `event.sequence > last_sequence` mutates state.
+    - To improve per-product ordering, route by `product_id` (e.g., consistent-hash or topic exchange with hashed routing keys) to a bounded set of queues/consumers.
+  - Consumption & retries:
+    - Manual acks with `basic.ack`; set `basic.qos` (prefetch) to control concurrency.
+    - Use a DLX (dead-letter exchange) for retries with backoff (TTL + DLX or delayed exchange plugin). After N attempts, route to a DLQ for inspection.
+  - Exactly-once in practice:
+    - RabbitMQ cannot guarantee global exactly-once delivery, but combining publisher confirms, persistent messages, manual acks, and idempotent consumers (sequence gating) achieves effective exactly-once for state updates.
   - Operations:
-    - Use a DLQ topic for poison messages with error metadata; monitor with alerts.
-    - Consider compaction for state-like streams; use retention for raw event topics.
-    - Tune producer linger/batching and compression for throughput; size partitions to target consumer concurrency.
+    - Monitor queue depths, redeliveries, unacked counts, and DLQ volumes. Alert on sustained growth.
 
 - Persistence (PostgreSQL or Redis)
   - PostgreSQL: Upsert with sequence gating to enforce last-write-wins, e.g., conflict on `product_id` and update only when `excluded.last_sequence > products.last_sequence`.
@@ -198,6 +200,7 @@ docker run --rm -p 8080:8080 product-update-service-simulator:dev
   - Check that `product_id` in events matches the queried `GET /products/{id}`.
   - Ensure sequence gating is not discarding equal/older events (expected behavior); send a newer sequence.
   - If shutting down, POST will return 503; wait for drain to complete.
+  - For RabbitMQ: check queue depth, unacked messages, and DLQ counts. Verify consumers are acknowledging (no stuck unacked), publisher confirms are enabled and succeeding, and retry routing (TTL/DLX) is working as expected.
 
 ## License
 
