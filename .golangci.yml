@@ -1,0 +1,22 @@
+run:
+  timeout: 5m
+linters:
+  disable-all: true
+  enable:
+    - govet
+    - staticcheck
+    - errcheck
+    - ineffassign
+    - gofmt
+    - goimports
+    - gosimple
+    - gocritic
+    - revive
+    - misspell
+    - goconst
+    - exportloopref
+    - prealloc
+    - unconvert
+    - unparam
+issues:
+  exclude-use-default: false

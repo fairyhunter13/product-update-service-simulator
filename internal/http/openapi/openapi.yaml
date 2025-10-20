@@ -1,0 +1,158 @@
+openapi: 3.0.3
+info:
+  title: Product Update Service Simulator
+  version: 1.0.0
+  description: |
+    Minimal async product update service. Supports partial updates, non-blocking ingestion,
+    dynamic workers, strict JSON decoding, structured logging, graceful shutdown.
+servers:
+  - url: http://localhost:8080
+paths:
+  /events:
+    post:
+      summary: Enqueue a product update event (partial updates allowed)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Event'
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ack'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '415':
+          description: Unsupported Media Type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /products/{id}:
+    get:
+      summary: Get product state by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /healthz:
+    get:
+      summary: Liveness/health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /debug/metrics:
+    get:
+      summary: Service metrics (JSON)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events_enqueued:
+                    type: integer
+                    format: int64
+                  events_processed:
+                    type: integer
+                    format: int64
+                  backlog_size:
+                    type: integer
+                  queue_depth:
+                    type: integer
+                  worker_count:
+                    type: integer
+                  uptime_sec:
+                    type: number
+components:
+  schemas:
+    Event:
+      type: object
+      required:
+        - product_id
+      properties:
+        product_id:
+          type: string
+        price:
+          type: number
+          minimum: 0
+        stock:
+          type: integer
+          minimum: 0
+    Ack:
+      type: object
+      properties:
+        status:
+          type: string
+          example: accepted
+        request_id:
+          type: string
+        sequence:
+          type: integer
+          format: int64
+        product_id:
+          type: string
+        received_at:
+          type: string
+          format: date-time
+        queue_depth:
+          type: integer
+        backlog_size:
+          type: integer
+        worker_count:
+          type: integer
+    Product:
+      type: object
+      properties:
+        product_id:
+          type: string
+        price:
+          type: number
+        stock:
+          type: integer
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        details:
+          type: string

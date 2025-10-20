@@ -1,2 +1,167 @@
-# product-update-service-simulator
-Product Update Service Simulator
+ - API docs
+   - OpenAPI YAML: http://localhost:8080/openapi.yaml
+   - Swagger UI: http://localhost:8080/docs
+# Product Update Service Simulator
+
+[![Test Reports](https://img.shields.io/badge/Test%20Reports-GitHub%20Pages-blue)](https://fairyhunter13.github.io/product-update-service-simulator/)
+
+A minimal, production-informed Go service that accepts product update events asynchronously and exposes product state over HTTP. Designed to demonstrate: partial updates, non-blocking ingestion via an effectively-unbounded queue, dynamic worker scaling, strict JSON decoding, structured JSON logging, and graceful shutdown.
+
+## Quickstart
+
+- Build & run
+```bash
+go run ./cmd/product-update-service-simulator
+# or
+HTTP_ADDR=":8080" WORKER_MIN=3 WORKER_MAX=8 go run ./cmd/product-update-service-simulator
+```
+
+- Send events (partial updates allowed)
+```bash
+curl -i -X POST "http://localhost:8080/events" \
+  -H "Content-Type: application/json" \
+  -H "X-Request-Id: demo-req-1" \
+  -d '{"product_id":"p-1","price":10.5}'
+```
+
+- Get product state
+```bash
+curl -i "http://localhost:8080/products/p-1"
+```
+
+## Environment variables
+
+- HTTP_ADDR (default ":8080"): HTTP listen address
+- SHUTDOWN_TIMEOUT (seconds, default 15): drain window before exit
+- WORKER_COUNT (default = WORKER_MIN): initial worker count
+- WORKER_MIN (default 3), WORKER_MAX (default 8): worker bounds
+- SCALE_INTERVAL_MS (default 500): scaler tick interval (ms)
+- SCALE_UP_BACKLOG_PER_WORKER (default 100): scale-up threshold per worker
+- SCALE_DOWN_IDLE_TICKS (default 6): scale-down after this many idle ticks
+- QUEUE_HIGH_WATERMARK (default 5000): soft cap; warn when backlog exceeds (no drops)
+
+## API
+
+- POST /events
+  - Content-Type: application/json (strict). Unknown fields → 400.
+  - Body: `{ "product_id": "...", "price": 12.3?, "stock": 7? }`
+    - `product_id` required
+    - `price` and/or `stock` optional, each `>= 0` when present
+  - Response: `202 Accepted` with JSON acknowledgment
+```json
+{
+  "status": "accepted",
+  "request_id": "...",
+  "sequence": 123,
+  "product_id": "p-1",
+  "received_at": "2025-10-20T15:04:05Z",
+  "queue_depth": 42,
+  "backlog_size": 12,
+  "worker_count": 4
+}
+```
+  - During shutdown: `503` `{ "error": "shutting_down" }`
+  - API Documentation: `/openapi.yaml` (OpenAPI) and `/docs` (Swagger UI)
+
+## Reports (GitHub Pages)
+
+- **Dashboard**: https://fairyhunter13.github.io/product-update-service-simulator/
+- **Unit only**: https://fairyhunter13.github.io/product-update-service-simulator/unit.html
+- **Integration only**: https://fairyhunter13.github.io/product-update-service-simulator/integration.html
+- **History by tag**: https://fairyhunter13.github.io/product-update-service-simulator/<tag>/ (e.g., `/v1.0.0/`)
+
+- GET /products/{id}
+  - 200 with `{ "product_id", "price", "stock" }` or 404 if unknown
+
+## Design highlights
+
+- Queue & ingestion
+  - Non-blocking enqueue to a slice-backed backlog with channel handoff
+  - Soft cap: `QUEUE_HIGH_WATERMARK` emits warnings (no 503, no drops)
+  - Monotonic sequence assigned at intake for last-write-wins
+- Dynamic worker scaling
+  - Scale up when `backlog_size > worker_count * SCALE_UP_BACKLOG_PER_WORKER`
+  - Scale down after `SCALE_DOWN_IDLE_TICKS` intervals of zero backlog
+  - Clamped to `[WORKER_MIN, WORKER_MAX]`
+- Store semantics
+  - Thread-safe map with `sync.RWMutex`
+  - Partial updates: only provided fields mutate state
+  - Last-write-wins by sequence; equal sequence is idempotent no-op
+- Strict JSON decoding & validation
+  - `json.Decoder.DisallowUnknownFields()`; 400 on unknown/malformed
+  - Enforce `Content-Type: application/json` → 415 otherwise
+- Logging & observability
+  - `log/slog` JSON output
+  - Correlation via `X-Request-Id` (or generated UUID)
+  - Queue metrics available in logs: `events_enqueued/processed`, `backlog_size`, `worker_count`
+- Graceful shutdown
+  - Reject new events with 503 while draining queued items
+  - Logs mark begin/end drain and timeouts
+
+## Project layout
+
+- `cmd/product-update-service-simulator/` — service entrypoint
+- `internal/http/` — handlers, router, middleware
+- `internal/model/` — API types
+- `internal/store/` — thread-safe in-memory store
+- `internal/queue/` — queue, manager, sequencer
+- `internal/obs/` — logging setup
+- `internal/config/` — env-driven configuration
+- `build/Dockerfile` — multi-stage build
+
+Follows common patterns from the community `golang-standards/project-layout` (use `internal/` for non-exported code; `cmd/` for entrypoints).
+
+## Testing
+
+- Unit & integration tests
+```bash
+go test ./... -race -covermode=atomic -coverprofile=coverage.out
+```
+- Highlights
+  - Handlers: happy-path, strict decoding (400 unknown fields), 415 content-type, shutdown 503
+  - Store: partial updates, last-write-wins, concurrency
+  - Queue/Manager: non-blocking enqueue, shutdown intake, drain
+  - Test layout: unit tests under `internal/...`; integration tests under `test/integration/`
+  - Integration: end-to-end HTTP tests against a running service
+
+### Integration tests (Docker Compose)
+
+Run the service and execute integration tests in containers using Compose:
+
+```bash
+docker compose up -d app
+docker compose run --rm itest
+docker compose down -v
+```
+
+## CI/CD
+
+- GitHub Actions (`.github/workflows/ci.yml`)
+  - `go vet` and `go test` with `-race -cover`
+  - Coverage gate: fails if total coverage < 80%
+  - `golangci-lint` (action) for static analysis
+  - Docker build verification with `build/Dockerfile`
+
+## Docker
+
+```bash
+docker build -f build/Dockerfile -t product-update-service-simulator:dev .
+docker run --rm -p 8080:8080 product-update-service-simulator:dev
+```
+
+## Troubleshooting
+
+- Backlog growing
+  - Check logs for `queue backlog exceeds high watermark`
+  - Increase workers via env (`WORKER_MAX`) or scale parameters
+- Events accepted but products not updating
+  - Inspect logs for sequences and worker activity
+  - Verify `product_id` values and field ranges
+- 400 on POST
+  - Ensure payload has no unknown fields; enforce `application/json`
+- 503 on POST
+  - Service is shutting down; retry after it restarts
+
+## License
+
+MIT
