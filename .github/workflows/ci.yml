@@ -21,11 +21,16 @@ jobs:
         run: make fmt-check
       - name: Vet
         run: make vet
-      - name: Install golangci-lint (manual)
+      - name: Install golangci-lint (prebuilt binary)
         env:
           GOTOOLCHAIN: local
+          GOLANGCI_LINT_VERSION: v1.60.3
         run: |
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.60.2
+          curl -sSfL https://github.com/golangci/golangci-lint/releases/download/${GOLANGCI_LINT_VERSION}/golangci-lint-${GOLANGCI_LINT_VERSION#v}-linux-amd64.tar.gz -o golangci-lint.tgz
+          tar -xzf golangci-lint.tgz
+          mkdir -p "$HOME/.local/bin"
+          mv golangci-lint-*/golangci-lint "$HOME/.local/bin/"
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
           golangci-lint version
       - name: Run golangci-lint
         env:
