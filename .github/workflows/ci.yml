@@ -21,21 +21,12 @@ jobs:
         run: make fmt-check
       - name: Vet
         run: make vet
-      - name: Install golangci-lint (prebuilt binary)
-        env:
-          GOTOOLCHAIN: local
-          GOLANGCI_LINT_VERSION: v1.60.3
-        run: |
-          curl -sSfL https://github.com/golangci/golangci-lint/releases/download/${GOLANGCI_LINT_VERSION}/golangci-lint-${GOLANGCI_LINT_VERSION#v}-linux-amd64.tar.gz -o golangci-lint.tgz
-          tar -xzf golangci-lint.tgz
-          mkdir -p "$HOME/.local/bin"
-          mv golangci-lint-*/golangci-lint "$HOME/.local/bin/"
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-          golangci-lint version
-      - name: Run golangci-lint
-        env:
-          GOTOOLCHAIN: local
-        run: golangci-lint run --timeout=5m
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.5.0
+          install-mode: binary
+          args: --timeout=5m
       - name: Dockerfile lint (hadolint)
         run: make security-hadolint
       - name: "Docs validation (README sections)"
