@@ -25,7 +25,7 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           version: v1.60.3
-          args: --disable typecheck --timeout=5m
+          args: --timeout=5m
       - name: Dockerfile lint (hadolint)
         run: make security-hadolint
       - name: "Docs validation (README sections)"
