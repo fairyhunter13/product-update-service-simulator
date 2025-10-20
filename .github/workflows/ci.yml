@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.24.3'
+          go-version: '1.25.1'
       - name: Install dev tools
         run: make tools
       - name: Check formatting (gofumpt)
@@ -26,6 +26,7 @@ jobs:
         with:
           version: v1.60.3
           args: --timeout=5m
+          install-mode: goinstall
       - name: Dockerfile lint (hadolint)
         run: make security-hadolint
       - name: "Docs validation (README sections)"
