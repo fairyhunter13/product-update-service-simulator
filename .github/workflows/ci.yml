@@ -21,15 +21,16 @@ jobs:
         run: make fmt-check
       - name: Vet
         run: make vet
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+      - name: Install golangci-lint (manual)
         env:
           GOTOOLCHAIN: local
-        with:
-          version: v1.60.2
-          args: --timeout=5m
-          install-mode: goinstall
-          skip-cache: true
+        run: |
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.60.2
+          golangci-lint version
+      - name: Run golangci-lint
+        env:
+          GOTOOLCHAIN: local
+        run: golangci-lint run --timeout=5m
       - name: Dockerfile lint (hadolint)
         run: make security-hadolint
       - name: "Docs validation (README sections)"
