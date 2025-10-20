@@ -3,13 +3,12 @@ run:
   timeout: 5m
   go: "1.25.1"
 linters:
-  default: none
+  default: standard
   enable:
     - govet
     - staticcheck
     - errcheck
     - ineffassign
-    - gosimple
     - gocritic
     - revive
     - misspell
