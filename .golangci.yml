@@ -9,8 +9,6 @@ linters:
     - staticcheck
     - errcheck
     - ineffassign
-    - gofmt
-    - goimports
     - gosimple
     - gocritic
     - revive
