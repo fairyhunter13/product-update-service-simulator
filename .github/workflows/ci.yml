@@ -23,10 +23,13 @@ jobs:
         run: make vet
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
+        env:
+          GOTOOLCHAIN: local
         with:
           version: v1.60.3
           args: --timeout=5m
           install-mode: goinstall
+          skip-cache: true
       - name: Dockerfile lint (hadolint)
         run: make security-hadolint
       - name: "Docs validation (README sections)"
