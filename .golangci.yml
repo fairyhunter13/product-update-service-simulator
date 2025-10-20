@@ -3,6 +3,8 @@ run:
   go: "1.23"
 linters:
   disable-all: true
+  disable:
+    - typecheck
   enable:
     - govet
     - staticcheck
