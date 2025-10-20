@@ -29,7 +29,8 @@ func TestIntegration_HighLoadNonBlocking(t *testing.T) {
 				r.Header.Set("Content-Type", "application/json")
 				resp, err := client.Do(r)
 				if err != nil {
-					errCh <- err; return
+					errCh <- err
+					return
 				}
 				if resp.StatusCode != http.StatusAccepted {
 					errCh <- fmt.Errorf("expected 202, got %d", resp.StatusCode)
@@ -41,6 +42,8 @@ func TestIntegration_HighLoadNonBlocking(t *testing.T) {
 	wg.Wait()
 	close(errCh)
 	for err := range errCh {
-		if err != nil { t.Fatal(err) }
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 }

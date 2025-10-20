@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/fairyhunter13/product-update-service-simulator/internal/model"
 	"github.com/fairyhunter13/product-update-service-simulator/internal/config"
+	"github.com/fairyhunter13/product-update-service-simulator/internal/model"
 	"github.com/fairyhunter13/product-update-service-simulator/internal/obs"
 	"github.com/fairyhunter13/product-update-service-simulator/internal/store"
 )

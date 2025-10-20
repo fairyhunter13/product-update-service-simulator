@@ -3,8 +3,10 @@ SHELL := /bin/bash
 # Defaults
 COVERAGE_THRESHOLD ?= 80.0
 GOBIN ?= $(shell go env GOPATH)/bin
+BIN_DIR := $(CURDIR)/bin
+GOLANGCI_VERSION ?= 1.60.3
 
-.PHONY: tools tools-security fmt fmt-check lint vet test-unit test-non-integration \
+.PHONY: tools tools-security fmt fmt-check lint lint-all vet docs-validate test-unit test-non-integration \
 	coverage-enforce docker-build compose-up compose-itest compose-down compose-integration \
 	security-govulncheck security-gosec security-trivy-fs security-trivy-image security-gitleaks \
 	reports-unit-junit reports-integration-junit reports-html security-hadolint
@@ -31,12 +33,47 @@ fmt-check:
 	test -z "$$out"
 
 # Linting (requires golangci-lint installed locally)
+golangci-download:
+	@mkdir -p $(BIN_DIR)
+	@echo "Downloading golangci-lint v$(GOLANGCI_VERSION)..."
+	@curl -sSL -o $(BIN_DIR)/golangci-lint.tgz https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_VERSION)/golangci-lint-$(GOLANGCI_VERSION)-linux-amd64.tar.gz
+	@tar -xzf $(BIN_DIR)/golangci-lint.tgz -C $(BIN_DIR)
+	@cp $(BIN_DIR)/golangci-lint-$(GOLANGCI_VERSION)-linux-amd64/golangci-lint $(BIN_DIR)/golangci-lint
+	@chmod +x $(BIN_DIR)/golangci-lint
+	@rm -rf $(BIN_DIR)/golangci-lint-$(GOLANGCI_VERSION)-linux-amd64 $(BIN_DIR)/golangci-lint.tgz
+
 lint:
-	golangci-lint run --timeout=5m
+	@set -e; \
+	if [ -x "$(GOBIN)/golangci-lint" ]; then LINT_BIN="$(GOBIN)/golangci-lint"; \
+	elif command -v golangci-lint >/dev/null 2>&1; then LINT_BIN="golangci-lint"; \
+	elif [ -x "$(BIN_DIR)/golangci-lint" ]; then LINT_BIN="$(BIN_DIR)/golangci-lint"; \
+	else $(MAKE) golangci-download; LINT_BIN="$(BIN_DIR)/golangci-lint"; fi; \
+	echo "Using $${LINT_BIN} for linting"; \
+	"$${LINT_BIN}" run --timeout=5m
+
+# Containerized golangci-lint (matches CI)
+lint-ci:
+	docker run --rm -v $(PWD):/app -w /app golangci/golangci-lint:v$(GOLANGCI_VERSION) golangci-lint run --timeout=5m
+
+# Aggregate all linters (code + Dockerfile) and vet
+lint-all: fmt-check vet lint-ci security-hadolint
 
 # Vet
 vet:
 	go vet ./...
+
+# Docs validation: ensure README.md has required sections and links
+docs-validate:
+	@echo "Validating README.md required sections..."
+	@grep -q "^## Setup Instructions" README.md
+	@grep -q "^## Design Choices" README.md
+	@grep -q "^## Production Considerations" README.md
+	@grep -q "^## Troubleshooting Strategies" README.md
+	@grep -q "^## API" README.md
+	@grep -q "^## Reports (GitHub Pages)" README.md
+	@grep -q "/openapi.yaml" README.md
+	@grep -q "/docs" README.md
+	@grep -q "Test%20Reports-GitHub%20Pages" README.md
 
 # Testing
 # Unit tests over internal packages with race and coverage output
@@ -121,3 +158,38 @@ reports-html:
 	cp _site/unit.html _site/$$VERSION/unit.html; \
 	cp _site/integration.html _site/$$VERSION/integration.html; \
 	cp -r reports _site/
+
+# Publish OpenAPI + Swagger UI to Pages
+pages-openapi:
+	mkdir -p _site/api
+	cp internal/http/openapi/openapi.yaml _site/api/openapi.yaml
+	cat > _site/api/index.html <<'HTML'
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Product Update Service API Docs</title>
+    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+    <style> body { margin: 0; } </style>
+  </head>
+  <body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <script>
+      window.onload = () => {
+        window.ui = SwaggerUIBundle({
+          url: 'openapi.yaml',
+          dom_id: '#swagger-ui',
+          presets: [SwaggerUIBundle.presets.apis],
+        });
+      };
+    </script>
+  </body>
+  </html>
+HTML
+	# Versioned copy
+	VERSION=$$(git describe --tags --exact-match 2>/dev/null || echo latest); \
+	mkdir -p _site/$$VERSION/api; \
+	cp _site/api/openapi.yaml _site/$$VERSION/api/openapi.yaml; \
+	cp _site/api/index.html _site/$$VERSION/api/index.html

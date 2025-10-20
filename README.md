@@ -1,13 +1,14 @@
- - API docs
-   - OpenAPI YAML: http://localhost:8080/openapi.yaml
-   - Swagger UI: http://localhost:8080/docs
 # Product Update Service Simulator
 
 [![Test Reports](https://img.shields.io/badge/Test%20Reports-GitHub%20Pages-blue)](https://fairyhunter13.github.io/product-update-service-simulator/)
 
 A minimal, production-informed Go service that accepts product update events asynchronously and exposes product state over HTTP. Designed to demonstrate: partial updates, non-blocking ingestion via an effectively-unbounded queue, dynamic worker scaling, strict JSON decoding, structured JSON logging, and graceful shutdown.
 
-## Quickstart
+## Setup Instructions
+
+- Prerequisites
+  - Go 1.25+
+  - Optional: Docker 24+, Docker Compose
 
 - Build & run
 ```bash
@@ -62,6 +63,8 @@ curl -i "http://localhost:8080/products/p-1"
 ```
   - During shutdown: `503` `{ "error": "shutting_down" }`
   - API Documentation: `/openapi.yaml` (OpenAPI) and `/docs` (Swagger UI)
+    - Local links: http://localhost:8080/openapi.yaml and http://localhost:8080/docs
+    - Static (GitHub Pages): https://fairyhunter13.github.io/product-update-service-simulator/api/ and https://fairyhunter13.github.io/product-update-service-simulator/api/openapi.yaml
 
 ## Reports (GitHub Pages)
 
@@ -73,7 +76,7 @@ curl -i "http://localhost:8080/products/p-1"
 - GET /products/{id}
   - 200 with `{ "product_id", "price", "stock" }` or 404 if unknown
 
-## Design highlights
+## Design Choices
 
 - Queue & ingestion
   - Non-blocking enqueue to a slice-backed backlog with channel handoff
@@ -97,6 +100,30 @@ curl -i "http://localhost:8080/products/p-1"
 - Graceful shutdown
   - Reject new events with 503 while draining queued items
   - Logs mark begin/end drain and timeouts
+
+## Production Considerations
+
+- Queuing (RabbitMQ)
+  - Use durable queues with persistence; enable publisher confirms.
+  - Configure prefetch for fair dispatch; ack/nack with DLX for retries/dead-lettering.
+  - Use an idempotency key (e.g., `product_id+sequence`) to make consumers idempotent.
+  - Consider routing keys per `product_id` shard for ordering locality if required.
+
+- Persistence (PostgreSQL or Redis)
+  - PostgreSQL: Upsert with sequence gating to enforce last-write-wins, e.g., conflict on `product_id` and update only when `excluded.last_sequence > products.last_sequence`.
+  - Redis: Store product hash with `last_sequence`; use a Lua script to apply updates only when `new_seq > last_seq` atomically.
+  - Index on `product_id`; expose read models with caching where appropriate.
+
+- Large-scale and high throughput
+  - Scale workers horizontally; consider autoscaling (HPA/KEDA based on backlog/lag).
+  - Batch event processing when safe; apply gzip compression and limit payload size.
+  - Add admission control and rate limits; enforce memory guards when backlog grows.
+  - Consider switching to protobuf/MsgPack if JSON serialization becomes a bottleneck.
+
+- Error handling and retries
+  - Exponential backoff with jitter; move poison messages to DLQ after N attempts.
+  - Ensure updates are idempotent via `product_id+sequence` so retries are safe.
+  - Emit structured errors with correlation id; define SLOs and alert on breach.
 
 ## Project layout
 
@@ -149,18 +176,20 @@ docker build -f build/Dockerfile -t product-update-service-simulator:dev .
 docker run --rm -p 8080:8080 product-update-service-simulator:dev
 ```
 
-## Troubleshooting
+## Troubleshooting Strategies
 
-- Backlog growing
-  - Check logs for `queue backlog exceeds high watermark`
-  - Increase workers via env (`WORKER_MAX`) or scale parameters
-- Events accepted but products not updating
-  - Inspect logs for sequences and worker activity
-  - Verify `product_id` values and field ranges
-- 400 on POST
-  - Ensure payload has no unknown fields; enforce `application/json`
-- 503 on POST
-  - Service is shutting down; retry after it restarts
+- Data consistency problems
+  - Verify `last_sequence` monotonicity per product; older events should be ignored by design.
+  - Check worker logs for out-of-order processing; sequence gating prevents regressions.
+  - Confirm single-writer semantics for each product in persistence (upsert with sequence predicate).
+
+- Products aren't updating despite events being received
+  - Confirm POST acks include a `sequence` and `status=accepted`.
+  - Inspect `/debug/metrics` for `backlog_size`, `queue_depth`, and `worker_count` to ensure processing is active.
+  - Search logs for worker panics or validation errors; ensure `Content-Type: application/json`.
+  - Check that `product_id` in events matches the queried `GET /products/{id}`.
+  - Ensure sequence gating is not discarding equal/older events (expected behavior); send a newer sequence.
+  - If shutting down, POST will return 503; wait for drain to complete.
 
 ## License
 

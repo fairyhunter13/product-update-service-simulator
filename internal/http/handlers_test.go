@@ -29,76 +29,84 @@ type ackResp struct {
 }
 
 func TestOpenAPIServed(t *testing.T) {
-    _, _, cleanup, mux := setupApp(t)
-    defer cleanup()
-    req := httptest.NewRequest(http.MethodGet, "/openapi.yaml", nil)
-    rr := httptest.NewRecorder()
-    mux.ServeHTTP(rr, req)
-    if rr.Code != http.StatusOK {
-        t.Fatalf("expected 200, got %d", rr.Code)
-    }
-    if ct := rr.Header().Get("Content-Type"); ct == "" {
-        t.Fatalf("expected content-type set")
-    }
-    if !bytes.Contains(rr.Body.Bytes(), []byte("openapi:")) {
-        t.Fatalf("expected openapi content")
-    }
+	_, _, cleanup, mux := setupApp(t)
+	defer cleanup()
+	req := httptest.NewRequest(http.MethodGet, "/openapi.yaml", nil)
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
+	if ct := rr.Header().Get("Content-Type"); ct == "" {
+		t.Fatalf("expected content-type set")
+	}
+	if !bytes.Contains(rr.Body.Bytes(), []byte("openapi:")) {
+		t.Fatalf("expected openapi content")
+	}
 }
 
 func TestDocsServed(t *testing.T) {
-    _, _, cleanup, mux := setupApp(t)
-    defer cleanup()
-    req := httptest.NewRequest(http.MethodGet, "/docs", nil)
-    rr := httptest.NewRecorder()
-    mux.ServeHTTP(rr, req)
-    if rr.Code != http.StatusOK {
-        t.Fatalf("expected 200, got %d", rr.Code)
-    }
-    body := rr.Body.String()
-    if !strings.Contains(body, "swagger-ui") {
-        t.Fatalf("expected swagger-ui in docs body")
-    }
+	_, _, cleanup, mux := setupApp(t)
+	defer cleanup()
+	req := httptest.NewRequest(http.MethodGet, "/docs", nil)
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
+	body := rr.Body.String()
+	if !strings.Contains(body, "swagger-ui") {
+		t.Fatalf("expected swagger-ui in docs body")
+	}
 }
 
 func TestHealthzOK(t *testing.T) {
-    _, _, cleanup, mux := setupApp(t)
-    defer cleanup()
-    req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
-    rr := httptest.NewRecorder()
-    mux.ServeHTTP(rr, req)
-    if rr.Code != http.StatusOK {
-        t.Fatalf("expected 200, got %d", rr.Code)
-    }
+	_, _, cleanup, mux := setupApp(t)
+	defer cleanup()
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
 }
 
 func TestMetricsHandler(t *testing.T) {
-    _, mgr, cleanup, mux := setupApp(t)
-    defer cleanup()
-    // enqueue some items to alter metrics
-    for i := 0; i < 5; i++ {
-        b := bytes.NewBufferString(`{"product_id":"m","price":1}`)
-        r := httptest.NewRequest(http.MethodPost, "/events", b)
-        r.Header.Set("Content-Type", "application/json")
-        w := httptest.NewRecorder()
-        mux.ServeHTTP(w, r)
-        if w.Code != http.StatusAccepted { t.Fatalf("expected 202, got %d", w.Code) }
-    }
-    req := httptest.NewRequest(http.MethodGet, "/debug/metrics", nil)
-    rr := httptest.NewRecorder()
-    mux.ServeHTTP(rr, req)
-    if rr.Code != http.StatusOK {
-        t.Fatalf("expected 200, got %d", rr.Code)
-    }
-    var m map[string]any
-    if err := json.Unmarshal(rr.Body.Bytes(), &m); err != nil {
-        t.Fatalf("metrics json decode: %v", err)
-    }
-    if _, ok := m["worker_count"]; !ok { t.Fatalf("missing worker_count") }
-    if _, ok := m["queue_depth"]; !ok { t.Fatalf("missing queue_depth") }
-    // drain to avoid goroutines accumulating
-    ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-    defer cancel()
-    if ok := mgr.DrainUntil(ctx); !ok { t.Fatalf("drain timeout") }
+	_, mgr, cleanup, mux := setupApp(t)
+	defer cleanup()
+	// enqueue some items to alter metrics
+	for i := 0; i < 5; i++ {
+		b := bytes.NewBufferString(`{"product_id":"m","price":1}`)
+		r := httptest.NewRequest(http.MethodPost, "/events", b)
+		r.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, r)
+		if w.Code != http.StatusAccepted {
+			t.Fatalf("expected 202, got %d", w.Code)
+		}
+	}
+	req := httptest.NewRequest(http.MethodGet, "/debug/metrics", nil)
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rr.Code)
+	}
+	var m map[string]any
+	if err := json.Unmarshal(rr.Body.Bytes(), &m); err != nil {
+		t.Fatalf("metrics json decode: %v", err)
+	}
+	if _, ok := m["worker_count"]; !ok {
+		t.Fatalf("missing worker_count")
+	}
+	if _, ok := m["queue_depth"]; !ok {
+		t.Fatalf("missing queue_depth")
+	}
+	// drain to avoid goroutines accumulating
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	if ok := mgr.DrainUntil(ctx); !ok {
+		t.Fatalf("drain timeout")
+	}
 }
 
 func setupApp(t *testing.T) (*App, *queue.Manager, context.CancelFunc, http.Handler) {

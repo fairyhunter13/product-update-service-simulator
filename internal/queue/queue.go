@@ -102,7 +102,7 @@ func (q *Queue) Metrics() (enq, proc uint64, backlog, depth int) {
 	proc = q.processed.Load()
 	backlog = q.BacklogSize()
 	depth = q.QueueDepth()
-	return
+	return enq, proc, backlog, depth
 }
 
 func (q *Queue) CloseIntake() { q.shuttingDown.Store(true) }

@@ -7,15 +7,15 @@ import (
 )
 
 type Config struct {
-	HTTPAddr                   string
-	ShutdownTimeout            time.Duration
-	InitialWorkerCount         int
-	WorkerMin                  int
-	WorkerMax                  int
-	ScaleInterval              time.Duration
-	ScaleUpBacklogPerWorker    int
-	ScaleDownIdleTicks         int
-	QueueHighWatermark         int
+	HTTPAddr                string
+	ShutdownTimeout         time.Duration
+	InitialWorkerCount      int
+	WorkerMin               int
+	WorkerMax               int
+	ScaleInterval           time.Duration
+	ScaleUpBacklogPerWorker int
+	ScaleDownIdleTicks      int
+	QueueHighWatermark      int
 }
 
 func getenv(key, def string) string {

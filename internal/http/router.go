@@ -1,8 +1,8 @@
 package httpapi
 
 import (
-	"net/http"
 	"expvar"
+	"net/http"
 )
 
 func NewRouter(app *App) http.Handler {

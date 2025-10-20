@@ -21,9 +21,9 @@ func RequestIDFromContext(ctx context.Context) string {
 }
 
 type statusRecorder struct {
-	h   http.ResponseWriter
-	st  int
-	n   int
+	h  http.ResponseWriter
+	st int
+	n  int
 }
 
 func (w *statusRecorder) Header() http.Header { return w.h.Header() }
@@ -31,6 +31,7 @@ func (w *statusRecorder) WriteHeader(code int) {
 	w.st = code
 	w.h.WriteHeader(code)
 }
+
 func (w *statusRecorder) Write(b []byte) (int, error) {
 	n, err := w.h.Write(b)
 	w.n += n

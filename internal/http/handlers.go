@@ -7,19 +7,19 @@ import (
 	"time"
 
 	"github.com/fairyhunter13/product-update-service-simulator/internal/config"
+	httpopenapi "github.com/fairyhunter13/product-update-service-simulator/internal/http/openapi"
 	"github.com/fairyhunter13/product-update-service-simulator/internal/model"
 	"github.com/fairyhunter13/product-update-service-simulator/internal/obs"
-	httpopenapi "github.com/fairyhunter13/product-update-service-simulator/internal/http/openapi"
 	"github.com/fairyhunter13/product-update-service-simulator/internal/queue"
 	"github.com/fairyhunter13/product-update-service-simulator/internal/store"
 )
 
 type App struct {
-	Cfg      config.Config
-	Store    *store.Store
-	Manager  *queue.Manager
-	closing  bool
-	started  time.Time
+	Cfg     config.Config
+	Store   *store.Store
+	Manager *queue.Manager
+	closing bool
+	started time.Time
 }
 
 type ack struct {
@@ -131,33 +131,33 @@ func (a *App) getProductHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) healthHandler(w http.ResponseWriter, r *http.Request) {
-    w.Header().Set("Content-Type", "application/json")
-    w.WriteHeader(http.StatusOK)
-    _ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
 func (a *App) metricsHandler(w http.ResponseWriter, r *http.Request) {
-    enq, proc, backlog, depth := a.Manager.QueueMetrics()
-    m := map[string]any{
-        "events_enqueued": enq,
-        "events_processed": proc,
-        "backlog_size": backlog,
-        "queue_depth": depth,
-        "worker_count": a.Manager.WorkerCount(),
-        "uptime_sec": time.Since(a.started).Seconds(),
-    }
-    w.Header().Set("Content-Type", "application/json")
-    _ = json.NewEncoder(w).Encode(m)
+	enq, proc, backlog, depth := a.Manager.QueueMetrics()
+	m := map[string]any{
+		"events_enqueued":  enq,
+		"events_processed": proc,
+		"backlog_size":     backlog,
+		"queue_depth":      depth,
+		"worker_count":     a.Manager.WorkerCount(),
+		"uptime_sec":       time.Since(a.started).Seconds(),
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(m)
 }
 
 func (a *App) openapiHandler(w http.ResponseWriter, r *http.Request) {
-    w.Header().Set("Content-Type", "application/yaml")
-    _, _ = w.Write(httpopenapi.YAML)
+	w.Header().Set("Content-Type", "application/yaml")
+	_, _ = w.Write(httpopenapi.YAML)
 }
 
 func (a *App) docsHandler(w http.ResponseWriter, r *http.Request) {
-    w.Header().Set("Content-Type", "text/html; charset=utf-8")
-    html := `<!doctype html>
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	html := `<!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
@@ -175,5 +175,5 @@ func (a *App) docsHandler(w http.ResponseWriter, r *http.Request) {
     </script>
   </body>
 </html>`
-    _, _ = w.Write([]byte(html))
+	_, _ = w.Write([]byte(html))
 }

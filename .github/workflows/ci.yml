@@ -19,11 +19,17 @@ jobs:
         run: make tools
       - name: Check formatting (gofumpt)
         run: make fmt-check
+      - name: Vet
+        run: make vet
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
           version: v1.60.3
           args: --timeout=5m
+      - name: Dockerfile lint (hadolint)
+        run: make security-hadolint
+      - name: "Docs validation (README sections)"
+        run: make docs-validate
 
   security:
     runs-on: ubuntu-latest
@@ -91,8 +97,6 @@ jobs:
     needs: [build-test]
     steps:
       - uses: actions/checkout@v4
-      - name: Dockerfile lint (hadolint)
-        run: make security-hadolint
       - name: Image vulnerability scan (Trivy Image)
         run: make security-trivy-image
 
@@ -156,6 +160,8 @@ jobs:
         run: make reports-integration-junit
       - name: Render HTML reports
         run: make reports-html
+      - name: Publish API docs (OpenAPI + Swagger UI)
+        run: make pages-openapi
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
