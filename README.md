@@ -103,11 +103,19 @@ curl -i "http://localhost:8080/products/p-1"
 
 ## Production Considerations
 
-- Queuing (RabbitMQ)
-  - Use durable queues with persistence; enable publisher confirms.
-  - Configure prefetch for fair dispatch; ack/nack with DLX for retries/dead-lettering.
-  - Use an idempotency key (e.g., `product_id+sequence`) to make consumers idempotent.
-  - Consider routing keys per `product_id` shard for ordering locality if required.
+- Queuing (Redpanda/Kafka)
+  - Exactly-once processing (EoP) path:
+    - Enable idempotent producers (`enable.idempotence=true`) and `acks=all` with `min.insync.replicas>=2`.
+    - Use transactional producers with stable `transactional.id` per instance; wrap publish and offset commits in a single transaction: `beginTransaction` → produce events → `sendOffsetsToTransaction` → `commitTransaction` (or abort).
+    - Consumers run with isolation level `read_committed` to avoid reading aborted records.
+  - Idempotency and ordering:
+    - Partition by `product_id` key to keep per-product ordering within a partition.
+    - Use a deterministic idempotency key (e.g., `product_id+sequence`) and gate updates so only `event.sequence > last_sequence` mutates state (consumer-side dedupe).
+    - Optionally persist last processed sequence per `product_id` (DB row or a compacted topic) to survive restarts and guarantee at-least-once + idempotent → effectively exactly-once.
+  - Operations:
+    - Use a DLQ topic for poison messages with error metadata; monitor with alerts.
+    - Consider compaction for state-like streams; use retention for raw event topics.
+    - Tune producer linger/batching and compression for throughput; size partitions to target consumer concurrency.
 
 - Persistence (PostgreSQL or Redis)
   - PostgreSQL: Upsert with sequence gating to enforce last-write-wins, e.g., conflict on `product_id` and update only when `excluded.last_sequence > products.last_sequence`.

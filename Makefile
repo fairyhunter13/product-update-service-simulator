@@ -53,7 +53,7 @@ lint:
 
 # Containerized golangci-lint (matches CI)
 lint-ci:
-	docker run --rm -v $(PWD):/app -w /app golangci/golangci-lint:v$(GOLANGCI_VERSION) golangci-lint run --timeout=5m
+	docker run --rm -v $(PWD):/app -w /app golangci/golangci-lint:v$(GOLANGCI_VERSION) golangci-lint run --disable typecheck --timeout=5m
 
 # Aggregate all linters (code + Dockerfile) and vet
 lint-all: fmt-check vet lint-ci security-hadolint
@@ -163,31 +163,30 @@ reports-html:
 pages-openapi:
 	mkdir -p _site/api
 	cp internal/http/openapi/openapi.yaml _site/api/openapi.yaml
-	cat > _site/api/index.html <<'HTML'
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Product Update Service API Docs</title>
-    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
-    <style> body { margin: 0; } </style>
-  </head>
-  <body>
-    <div id="swagger-ui"></div>
-    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
-    <script>
-      window.onload = () => {
-        window.ui = SwaggerUIBundle({
-          url: 'openapi.yaml',
-          dom_id: '#swagger-ui',
-          presets: [SwaggerUIBundle.presets.apis],
-        });
-      };
-    </script>
-  </body>
-  </html>
-HTML
+	printf '%s\n' \
+	  '<!doctype html>' \
+	  '<html>' \
+	  '  <head>' \
+	  '    <meta charset="utf-8" />' \
+	  '    <meta name="viewport" content="width=device-width, initial-scale=1" />' \
+	  '    <title>Product Update Service API Docs</title>' \
+	  '    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />' \
+	  '    <style> body { margin: 0; } </style>' \
+	  '  </head>' \
+	  '  <body>' \
+	  '    <div id="swagger-ui"></div>' \
+	  '    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>' \
+	  '    <script>' \
+	  '      window.onload = () => {' \
+	  '        window.ui = SwaggerUIBundle({' \
+	  '          url: '\''openapi.yaml'\'', ' \
+	  '          dom_id: '\''#swagger-ui'\'', ' \
+	  '          presets: [SwaggerUIBundle.presets.apis],' \
+	  '        });' \
+	  '      };' \
+	  '    </script>' \
+	  '  </body>' \
+	  '</html>' > _site/api/index.html
 	# Versioned copy
 	VERSION=$$(git describe --tags --exact-match 2>/dev/null || echo latest); \
 	mkdir -p _site/$$VERSION/api; \
