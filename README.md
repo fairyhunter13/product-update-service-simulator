@@ -179,6 +179,14 @@ docker compose down -v
   - `golangci-lint` (action) for static analysis
   - Docker build verification with `build/Dockerfile`
 
+### Linting note
+
+- `.golangci.yml` disables the `typecheck` analyzer to avoid Go 1.25 stdlib export data mismatches during CI.
+- CI builds `golangci-lint` from source with Go 1.25 (`install-mode: goinstall`) to ensure compatibility.
+- Local setup: install `golangci-lint` per official docs and run `make lint`.
+  - Docs: https://golangci-lint.run/docs/welcome/install/
+  - GitHub Action: https://github.com/golangci/golangci-lint-action
+
 ## Docker
 
 ```bash
