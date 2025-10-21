@@ -4,6 +4,8 @@
 [![Unit Report](https://img.shields.io/badge/Unit%20Report-HTML-blue)](https://fairyhunter13.github.io/product-update-service-simulator/unit.html)
 [![Integration Report](https://img.shields.io/badge/Integration%20Report-HTML-blue)](https://fairyhunter13.github.io/product-update-service-simulator/integration.html)
 [![codecov](https://codecov.io/gh/fairyhunter13/product-update-service-simulator/branch/main/graph/badge.svg)](https://codecov.io/gh/fairyhunter13/product-update-service-simulator)
+[![codecov unit](https://codecov.io/gh/fairyhunter13/product-update-service-simulator/branch/main/graph/badge.svg?flag=unit)](https://codecov.io/gh/fairyhunter13/product-update-service-simulator)
+[![codecov integration](https://codecov.io/gh/fairyhunter13/product-update-service-simulator/branch/main/graph/badge.svg?flag=integration)](https://codecov.io/gh/fairyhunter13/product-update-service-simulator)
 
 A minimal, production-informed Go service that accepts product update events asynchronously and exposes product state over HTTP. Designed to demonstrate: partial updates, non-blocking ingestion via an effectively-unbounded queue, dynamic worker scaling, strict JSON decoding, structured JSON logging, and graceful shutdown.
 
