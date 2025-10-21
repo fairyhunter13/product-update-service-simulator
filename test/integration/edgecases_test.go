@@ -27,7 +27,7 @@ func TestIntegration_ValidationErrors(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 			if resp.StatusCode != tc.want {
 				t.Fatalf("%s: expected %d, got %d", tc.name, tc.want, resp.StatusCode)
 			}

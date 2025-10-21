@@ -15,6 +15,7 @@ const (
 	ctxKeyRequestID ctxKey = iota
 )
 
+// RequestIDFromContext retrieves the request ID from context if present.
 func RequestIDFromContext(ctx context.Context) string {
 	v, _ := ctx.Value(ctxKeyRequestID).(string)
 	return v
@@ -38,6 +39,7 @@ func (w *statusRecorder) Write(b []byte) (int, error) {
 	return n, err
 }
 
+// WithRequestID injects or propagates an X-Request-Id for each request.
 func WithRequestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reqID := r.Header.Get("X-Request-Id")
@@ -49,6 +51,7 @@ func WithRequestID(next http.Handler) http.Handler {
 	})
 }
 
+// WithLogging logs basic HTTP request information and latency.
 func WithLogging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()

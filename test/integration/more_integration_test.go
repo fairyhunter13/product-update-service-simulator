@@ -28,7 +28,7 @@ func TestIntegration_GetUnknownProductNotFound(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", resp.StatusCode)
 	}
@@ -43,7 +43,7 @@ func TestIntegration_MethodNotAllowed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp1.Body.Close()
+	defer func() { _ = resp1.Body.Close() }()
 	if resp1.StatusCode != http.StatusMethodNotAllowed {
 		t.Fatalf("expected 405, got %d", resp1.StatusCode)
 	}
@@ -54,7 +54,7 @@ func TestIntegration_MethodNotAllowed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp2.Body.Close()
+	defer func() { _ = resp2.Body.Close() }()
 	if resp2.StatusCode != http.StatusMethodNotAllowed {
 		t.Fatalf("expected 405, got %d", resp2.StatusCode)
 	}
@@ -75,7 +75,7 @@ func TestIntegration_ContentTypeVariants(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		if resp.StatusCode != http.StatusAccepted {
 			t.Fatalf("ctype %q expected 202, got %d", ctype, resp.StatusCode)
 		}
@@ -90,7 +90,7 @@ func TestIntegration_NoContentTypeIs415(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusUnsupportedMediaType {
 		t.Fatalf("expected 415, got %d", resp.StatusCode)
 	}
@@ -106,7 +106,7 @@ func TestIntegration_AckIncludesRequestIDAndTimestamp(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusAccepted {
 		t.Fatalf("expected 202, got %d", resp.StatusCode)
 	}
@@ -133,14 +133,14 @@ func TestIntegration_MetricsReflectActivity(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 	}
 	time.Sleep(500 * time.Millisecond)
 	resp, err := http.Get(u + "/debug/metrics")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
@@ -158,7 +158,7 @@ func TestIntegration_OpenAPIAndVarsEndpoints(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp1.Body.Close()
+	defer func() { _ = resp1.Body.Close() }()
 	if resp1.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp1.StatusCode)
 	}
@@ -167,7 +167,7 @@ func TestIntegration_OpenAPIAndVarsEndpoints(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp2.Body.Close()
+	defer func() { _ = resp2.Body.Close() }()
 	if resp2.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp2.StatusCode)
 	}
@@ -183,7 +183,7 @@ func TestIntegration_BoundaryValues(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resp1.Body.Close()
+	defer func() { _ = resp1.Body.Close() }()
 	if resp1.StatusCode != http.StatusAccepted {
 		t.Fatalf("expected 202, got %d", resp1.StatusCode)
 	}
@@ -194,7 +194,7 @@ func TestIntegration_BoundaryValues(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resp2.Body.Close()
+	defer func() { _ = resp2.Body.Close() }()
 	if resp2.StatusCode != http.StatusAccepted {
 		t.Fatalf("expected 202, got %d", resp2.StatusCode)
 	}
@@ -210,7 +210,7 @@ func TestIntegration_LastWriteWins(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resp1.Body.Close()
+	defer func() { _ = resp1.Body.Close() }()
 	if resp1.StatusCode != http.StatusAccepted {
 		t.Fatalf("expected 202, got %d", resp1.StatusCode)
 	}
@@ -221,7 +221,7 @@ func TestIntegration_LastWriteWins(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resp2.Body.Close()
+	defer func() { _ = resp2.Body.Close() }()
 	if resp2.StatusCode != http.StatusAccepted {
 		t.Fatalf("expected 202, got %d", resp2.StatusCode)
 	}
@@ -231,7 +231,7 @@ func TestIntegration_LastWriteWins(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp3.Body.Close()
+	defer func() { _ = resp3.Body.Close() }()
 	if resp3.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp3.StatusCode)
 	}

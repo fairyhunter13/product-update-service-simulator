@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+// NewRouter registers HTTP routes and returns the handler with middleware.
 func NewRouter(app *App) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/events", app.postEventsHandler)

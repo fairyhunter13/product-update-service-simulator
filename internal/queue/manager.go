@@ -1,3 +1,4 @@
+// Package queue implements an in-memory event queue and worker manager.
 package queue
 
 import (

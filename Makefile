@@ -4,7 +4,7 @@ SHELL := /bin/bash
 COVERAGE_THRESHOLD ?= 80.0
 GOBIN ?= $(shell go env GOPATH)/bin
 BIN_DIR := $(CURDIR)/bin
-GOLANGCI_VERSION ?= 1.60.3
+GOLANGCI_VERSION ?= 2.5.0
 
 .PHONY: tools tools-security fmt fmt-check lint lint-all vet docs-validate test-unit test-non-integration \
 	coverage-enforce docker-build compose-up compose-itest compose-down compose-integration \
@@ -53,7 +53,7 @@ lint:
 
 # Containerized golangci-lint (matches CI)
 lint-ci:
-	docker run --rm -v $(PWD):/app -w /app golangci/golangci-lint:v$(GOLANGCI_VERSION) golangci-lint run --disable typecheck --timeout=5m
+	docker run --rm -v $(PWD):/app -w /app golangci/golangci-lint:v2.5.0 golangci-lint run --timeout=5m
 
 # Aggregate all linters (code + Dockerfile) and vet
 lint-all: fmt-check vet lint-ci security-hadolint

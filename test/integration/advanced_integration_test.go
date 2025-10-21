@@ -18,7 +18,7 @@ func TestIntegration_MetricsIncreaseAndSane(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp0.Body.Close()
+	defer func() { _ = resp0.Body.Close() }()
 	if resp0.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp0.StatusCode)
 	}
@@ -35,7 +35,7 @@ func TestIntegration_MetricsIncreaseAndSane(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		if resp.StatusCode != http.StatusAccepted {
 			t.Fatalf("expected 202, got %d", resp.StatusCode)
 		}
@@ -48,7 +48,7 @@ func TestIntegration_MetricsIncreaseAndSane(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp1.Body.Close()
+	defer func() { _ = resp1.Body.Close() }()
 	if resp1.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp1.StatusCode)
 	}
@@ -83,7 +83,7 @@ func TestIntegration_ResponseContentTypeHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusAccepted {
 		t.Fatalf("expected 202, got %d", resp.StatusCode)
 	}
@@ -94,7 +94,7 @@ func TestIntegration_ResponseContentTypeHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp1.Body.Close()
+	defer func() { _ = resp1.Body.Close() }()
 	if ct := resp1.Header.Get("Content-Type"); ct == "" || ct[:16] != "application/json" {
 		t.Fatalf("unexpected content-type: %q", ct)
 	}
@@ -103,7 +103,7 @@ func TestIntegration_ResponseContentTypeHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp2.Body.Close()
+	defer func() { _ = resp2.Body.Close() }()
 	if ct := resp2.Header.Get("Content-Type"); ct == "" || ct[:16] != "application/json" {
 		t.Fatalf("unexpected content-type: %q", ct)
 	}
@@ -118,7 +118,7 @@ func TestIntegration_GeneratedRequestIDWhenMissing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusAccepted {
 		t.Fatalf("expected 202, got %d", resp.StatusCode)
 	}

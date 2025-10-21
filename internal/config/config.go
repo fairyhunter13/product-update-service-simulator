@@ -1,3 +1,4 @@
+// Package config provides runtime configuration values for the service.
 package config
 
 import (
@@ -6,6 +7,7 @@ import (
 	"time"
 )
 
+// Config holds configuration knobs for HTTP server and workers.
 type Config struct {
 	HTTPAddr                string
 	ShutdownTimeout         time.Duration
@@ -47,16 +49,17 @@ func durenvs(key string, defSec int) time.Duration {
 	return time.Duration(sec) * time.Second
 }
 
+// Load collects configuration from environment with defaults.
 func Load() Config {
-	min := atoienv("WORKER_MIN", 3)
-	max := atoienv("WORKER_MAX", 8)
-	init := atoienv("WORKER_COUNT", min)
+	minWorkers := atoienv("WORKER_MIN", 3)
+	maxWorkers := atoienv("WORKER_MAX", 8)
+	initialWorkers := atoienv("WORKER_COUNT", minWorkers)
 	return Config{
 		HTTPAddr:                getenv("HTTP_ADDR", ":8080"),
 		ShutdownTimeout:         durenvs("SHUTDOWN_TIMEOUT", 15),
-		InitialWorkerCount:      init,
-		WorkerMin:               min,
-		WorkerMax:               max,
+		InitialWorkerCount:      initialWorkers,
+		WorkerMin:               minWorkers,
+		WorkerMax:               maxWorkers,
 		ScaleInterval:           durenvms("SCALE_INTERVAL_MS", 500),
 		ScaleUpBacklogPerWorker: atoienv("SCALE_UP_BACKLOG_PER_WORKER", 100),
 		ScaleDownIdleTicks:      atoienv("SCALE_DOWN_IDLE_TICKS", 6),

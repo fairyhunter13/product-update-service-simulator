@@ -26,7 +26,7 @@ func TestIntegration_OpenAPIServed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
@@ -39,7 +39,7 @@ func TestIntegration_DocsServed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
@@ -60,7 +60,7 @@ func waitReady(t *testing.T) {
 	for time.Now().Before(deadline) {
 		resp, err := http.Get(url)
 		if err == nil {
-			_ = resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 			return
 		}
 		time.Sleep(250 * time.Millisecond)
@@ -91,7 +91,7 @@ func TestIntegration_PostThenGet(t *testing.T) {
 		if resp.StatusCode != http.StatusAccepted {
 			t.Fatalf("expected 202, got %d", resp.StatusCode)
 		}
-		_ = resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 	}
 	time.Sleep(2 * time.Second)
 	rg, err := http.NewRequest(http.MethodGet, u+"/products/pi", nil)
@@ -102,10 +102,10 @@ func TestIntegration_PostThenGet(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() { _ = respg.Body.Close() }()
 	if respg.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", respg.StatusCode)
 	}
-	defer respg.Body.Close()
 	var p product
 	if err := json.NewDecoder(respg.Body).Decode(&p); err != nil {
 		t.Fatal(err)
@@ -128,7 +128,7 @@ func TestIntegration_StrictDecoding_UnknownField(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d", resp.StatusCode)
 	}
@@ -148,7 +148,7 @@ func TestIntegration_PartialUpdates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_ = resp1.Body.Close()
+	defer func() { _ = resp1.Body.Close() }()
 	if resp1.StatusCode != http.StatusAccepted {
 		t.Fatalf("expected 202, got %d", resp1.StatusCode)
 	}
@@ -163,7 +163,7 @@ func TestIntegration_PartialUpdates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_ = resp2.Body.Close()
+	defer func() { _ = resp2.Body.Close() }()
 	if resp2.StatusCode != http.StatusAccepted {
 		t.Fatalf("expected 202, got %d", resp2.StatusCode)
 	}
@@ -177,7 +177,7 @@ func TestIntegration_PartialUpdates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer respg.Body.Close()
+	defer func() { _ = respg.Body.Close() }()
 	if respg.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", respg.StatusCode)
 	}
@@ -202,7 +202,7 @@ func TestIntegration_UnsupportedMediaType(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusUnsupportedMediaType {
 		t.Fatalf("expected 415, got %d", resp.StatusCode)
 	}

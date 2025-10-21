@@ -1,3 +1,4 @@
+// Package main boots the Product Update Service Simulator HTTP server.
 package main
 
 import (
