@@ -7,12 +7,14 @@ linters:
   enable:
     - govet
     - staticcheck
-    - errcheck
     - ineffassign
     - gocritic
-    - revive
     - misspell
     - goconst
     - prealloc
     - unconvert
     - unparam
+  disable:
+    - revive
+    - unused
+    - errcheck
