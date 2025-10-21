@@ -15,6 +15,7 @@ A minimal, production-informed Go service that accepts product update events asy
 ## Table of Contents
 
 - [Setup Instructions](#setup-instructions)
+- [Quickstart](#quickstart)
 - [Docker](#docker)
 - [Environment variables](#environment-variables)
 - [API](#api)
