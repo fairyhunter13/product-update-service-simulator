@@ -6,6 +6,7 @@ GOBIN ?= $(shell go env GOPATH)/bin
 BIN_DIR := $(CURDIR)/bin
 GOLANGCI_VERSION ?= 2.5.0
 XUNIT_VIEWER_VERSION ?= 10
+TRIVY_IMAGE ?= aquasec/trivy:0.52.2
 
 .PHONY: tools tools-security fmt fmt-check lint lint-all vet docs-validate test-unit test-non-integration \
 	coverage-enforce docker-build compose-up compose-itest compose-down compose-integration \
@@ -120,11 +121,11 @@ security-gosec:
 # Security - Container and repo scanning via Trivy (using Docker image)
 # Filesystem scan of the repo
 security-trivy-fs:
-	docker run --rm -v $(PWD):/src -w /src aquasec/trivy:latest fs --no-progress --exit-code 1 --severity HIGH,CRITICAL .
+	docker run --rm -v $(PWD):/src -w /src $(TRIVY_IMAGE) fs --no-progress --exit-code 1 --severity HIGH,CRITICAL .
 
 # Image scan (build image first so it exists on the runner/local machine)
 security-trivy-image: docker-build
-	docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --no-progress --exit-code 1 --severity HIGH,CRITICAL product-update-service-simulator:ci
+	docker run --rm -v /var/run/docker.sock:/var/run/docker.sock $(TRIVY_IMAGE) image --no-progress --exit-code 1 --severity HIGH,CRITICAL product-update-service-simulator:ci
 
 # Secret scanning via gitleaks (optional but recommended)
 security-gitleaks:
@@ -146,16 +147,16 @@ reports-integration-junit:
 	$(MAKE) compose-down
 
 reports-html:
-    mkdir -p _site
-    npx --yes xunit-viewer@$(XUNIT_VIEWER_VERSION) -r reports -o _site/index.html
-    npx --yes xunit-viewer@$(XUNIT_VIEWER_VERSION) -r reports/unit -o _site/unit.html
-    npx --yes xunit-viewer@$(XUNIT_VIEWER_VERSION) -r reports/integration -o _site/integration.html
-    VERSION=$$(git describe --tags --exact-match 2>/dev/null || echo latest); \
-      mkdir -p _site/$$VERSION; \
-      cp _site/index.html _site/$$VERSION/index.html; \
-      cp _site/unit.html _site/$$VERSION/unit.html; \
-      cp _site/integration.html _site/$$VERSION/integration.html; \
-      cp -r reports _site/
+	mkdir -p _site
+	npx --yes xunit-viewer@$(XUNIT_VIEWER_VERSION) -r reports -o _site/index.html
+	npx --yes xunit-viewer@$(XUNIT_VIEWER_VERSION) -r reports/unit -o _site/unit.html
+	npx --yes xunit-viewer@$(XUNIT_VIEWER_VERSION) -r reports/integration -o _site/integration.html
+	VERSION=$$(git describe --tags --exact-match 2>/dev/null || echo latest); \
+	  mkdir -p _site/$$VERSION; \
+	  cp _site/index.html _site/$$VERSION/index.html; \
+	  cp _site/unit.html _site/$$VERSION/unit.html; \
+	  cp _site/integration.html _site/$$VERSION/integration.html; \
+	  cp -r reports _site/
 
 # Publish OpenAPI + Swagger UI to Pages
 pages-openapi:

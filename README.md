@@ -1,6 +1,8 @@
 # Product Update Service Simulator
 
 [![Test Reports](https://img.shields.io/badge/Test%20Reports-GitHub%20Pages-blue)](https://fairyhunter13.github.io/product-update-service-simulator/)
+[![Unit Report](https://img.shields.io/badge/Unit%20Report-HTML-blue)](https://fairyhunter13.github.io/product-update-service-simulator/unit.html)
+[![Integration Report](https://img.shields.io/badge/Integration%20Report-HTML-blue)](https://fairyhunter13.github.io/product-update-service-simulator/integration.html)
 
 A minimal, production-informed Go service that accepts product update events asynchronously and exposes product state over HTTP. Designed to demonstrate: partial updates, non-blocking ingestion via an effectively-unbounded queue, dynamic worker scaling, strict JSON decoding, structured JSON logging, and graceful shutdown.
 
@@ -216,12 +218,24 @@ docker compose down -v
 - **Formatting**
   - `make fmt` — format code with gofumpt
   - `make fmt-check` — list files needing formatting (non-empty output fails)
+  
+  Example:
+  ```bash
+  make fmt-check && make fmt
+  ```
 
 - **Linting and vet**
   - `make vet` — run go vet on all packages
   - `make lint` — run golangci-lint (auto-downloads a local binary if missing)
   - `make lint-all` — fmt-check, vet, containerized golangci-lint, and hadolint
   - `make docs-validate` — verify required README sections and links
+  
+  Example:
+  ```bash
+  make vet && make lint && make docs-validate
+  # or stricter aggregate linting
+  make lint-all
+  ```
 
 - **Testing and coverage**
   - `make test-unit` — unit tests (race, coverage profile)
@@ -231,10 +245,22 @@ docker compose down -v
 ```bash
 COVERAGE_THRESHOLD=85.0 make coverage-enforce
 ```
+  
+  Example:
+  ```bash
+  make test-unit && make test-non-integration
+  make coverage-enforce
+  ```
 
 - **Docker and integration**
   - `make docker-build` — build container image using `build/Dockerfile`
   - `make compose-integration` — bring up app, run integration tests, then tear down
+  
+  Example:
+  ```bash
+  make docker-build
+  make compose-integration
+  ```
 
 - **Security scans**
   - `make security-govulncheck` — Go vulnerability scan
@@ -243,12 +269,27 @@ COVERAGE_THRESHOLD=85.0 make coverage-enforce
   - `make security-trivy-fs` — filesystem vulnerability scan
   - `make security-trivy-image` — container image vulnerability scan (expects prior docker-build)
   - `make security-hadolint` — Dockerfile linter
+  
+  Example:
+  ```bash
+  make security-govulncheck security-gosec security-gitleaks
+  make security-trivy-fs security-hadolint
+  # after build
+  make security-trivy-image
+  ```
 
 - **Reports and Pages**
   - `make reports-unit-junit` — unit test JUnit XML
   - `make reports-integration-junit` — integration test JUnit XML (via compose)
   - `make reports-html` — render HTML reports to `_site/` (also versioned)
   - `make pages-openapi` — publish OpenAPI YAML and Swagger UI to `_site/api/`
+  
+  Example:
+  ```bash
+  make reports-unit-junit reports-integration-junit
+  make reports-html
+  make pages-openapi
+  ```
 
 ## Troubleshooting Strategies
 
