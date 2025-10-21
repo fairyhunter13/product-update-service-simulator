@@ -291,6 +291,7 @@ docker compose down -v
   - Release: multi-arch build-and-push to GHCR on tags
   - GitHub Pages: publish unit/integration HTML reports, Codecov graphs page, and API docs (OpenAPI + Swagger UI)
   - Codecov: upload coverage via `codecov/codecov-action@v5` with flags (`unit`, `integration`); upload JUnit results via `codecov/test-results-action@v1` (Test Analytics)
+  - Codecov Commit Status: configured in `codecov.yml` to wait for both unit and integration uploads (`after_n_builds: 2`), and to post project and patch statuses (patch set to informational by default)
 
 ### Linting note
 

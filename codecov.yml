@@ -1,0 +1,36 @@
+codecov:
+  notify:
+    after_n_builds: 2 # wait for unit and integration uploads before finalizing statuses
+
+coverage:
+  status:
+    project:
+      default:
+        target: auto       # target the base commit's coverage
+        threshold: 1%      # allow up to 1% drop without failing
+        informational: false
+    patch:
+      default:
+        target: auto       # aim to maintain/raise coverage for changed lines
+        informational: true # don't fail CI on patch coverage by default
+
+flag_management:
+  default_rules:
+    carryforward: true # carry forward flag coverage from previous builds if missing
+  individual_flags:
+    - name: unit
+      statuses:
+        - type: project
+          target: auto
+          informational: true
+        - type: patch
+          target: auto
+          informational: true
+    - name: integration
+      statuses:
+        - type: project
+          target: auto
+          informational: true
+        - type: patch
+          target: auto
+          informational: true
