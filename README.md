@@ -30,6 +30,13 @@ curl -i -X POST "http://localhost:8080/events" \
 curl -i "http://localhost:8080/products/p-1"
 ```
 
+## Docker
+
+```bash
+docker build -f build/Dockerfile -t product-update-service-simulator:dev .
+docker run --rm -p 8080:8080 product-update-service-simulator:dev
+```
+
 ## Environment variables
 
 - HTTP_ADDR (default ":8080"): HTTP listen address
@@ -65,16 +72,30 @@ curl -i "http://localhost:8080/products/p-1"
   - API Documentation: `/openapi.yaml` (OpenAPI) and `/docs` (Swagger UI)
     - Local links: http://localhost:8080/openapi.yaml and http://localhost:8080/docs
     - Static (GitHub Pages): https://fairyhunter13.github.io/product-update-service-simulator/api/ and https://fairyhunter13.github.io/product-update-service-simulator/api/openapi.yaml
+  
+  - GET /products/{id}
+    - 200 with `{ "product_id", "price", "stock" }` or 404 if unknown
+
+  - GET /healthz
+    - 200 with `{ "status": "ok" }`
+
+  - GET /debug/metrics
+    - 200 with JSON metrics: `events_enqueued`, `events_processed`, `backlog_size`, `queue_depth`, `worker_count`, `uptime_sec`
+
+  - GET /debug/vars
+    - expvar endpoint exposing Go runtime and custom variables
 
 ## Reports (GitHub Pages)
 
 - **Dashboard**: https://fairyhunter13.github.io/product-update-service-simulator/
 - **Unit only**: https://fairyhunter13.github.io/product-update-service-simulator/unit.html
 - **Integration only**: https://fairyhunter13.github.io/product-update-service-simulator/integration.html
+- **Versioned (latest) - Unit**: https://fairyhunter13.github.io/product-update-service-simulator/latest/unit.html
+- **Versioned (latest) - Integration**: https://fairyhunter13.github.io/product-update-service-simulator/latest/integration.html
+- **Raw JUnit XML (unit)**: https://fairyhunter13.github.io/product-update-service-simulator/reports/unit/unit.xml
+- **Raw JUnit XML (integration)**: https://fairyhunter13.github.io/product-update-service-simulator/reports/integration/integration.xml
 - **History by tag**: https://fairyhunter13.github.io/product-update-service-simulator/<tag>/ (e.g., `/v1.0.0/`)
 
-- GET /products/{id}
-  - 200 with `{ "product_id", "price", "stock" }` or 404 if unknown
 
 ## Design Choices
 
@@ -97,7 +118,7 @@ curl -i "http://localhost:8080/products/p-1"
 - Logging & observability
   - `log/slog` JSON output
   - Correlation via `X-Request-Id` (or generated UUID)
-  - Queue metrics available in logs: `events_enqueued/processed`, `backlog_size`, `worker_count`
+  - Queue metrics available via `/debug/metrics`; logs include `backlog_size`, `queue_depth`, and `worker_count`
 - Graceful shutdown
   - Reject new events with 503 while draining queued items
   - Logs mark begin/end drain and timeouts
@@ -174,25 +195,60 @@ docker compose down -v
 ## CI/CD
 
 - GitHub Actions (`.github/workflows/ci.yml`)
-  - `go vet` and `go test` with `-race -cover`
-  - Coverage gate: fails if total coverage < 80%
-  - `golangci-lint` (action) for static analysis
-  - Docker build verification with `build/Dockerfile`
+  - Formatting and linting: `gofumpt`, `go vet`, `golangci-lint@v2.5.0` (action, install-mode: binary), Dockerfile lint via `hadolint`, docs validation (README sections)
+  - Security: `govulncheck`, `gosec`, repository secret scan via `gitleaks`, filesystem scan via `trivy fs`
+  - Build & tests: race-enabled tests; coverage gate fails if total coverage < 80%; Docker build verification using `build/Dockerfile`
+  - Integration: docker compose-based integration tests (`make compose-integration`)
+  - Container security: image scan via `trivy image`
+  - Release: multi-arch build-and-push to GHCR on tags
+  - GitHub Pages: publish unit/integration HTML reports and API docs (OpenAPI + Swagger UI)
 
 ### Linting note
 
-- `.golangci.yml` disables the `typecheck` analyzer to avoid Go 1.25 stdlib export data mismatches during CI.
-- CI builds `golangci-lint` from source with Go 1.25 (`install-mode: goinstall`) to ensure compatibility.
-- Local setup: install `golangci-lint` per official docs and run `make lint`.
+- `.golangci.yml` targets Go `1.25.1`, enables standard linters (e.g., `govet`, `staticcheck`, `errcheck`, etc.), and formatters `gofumpt` and `goimports`.
+- CI uses `golangci-lint-action@v8` with `version: v2.5.0` and `install-mode: binary`.
+- Local setup: install `golangci-lint` per official docs and run `make lint` or `make lint-all`.
   - Docs: https://golangci-lint.run/docs/welcome/install/
   - GitHub Action: https://github.com/golangci/golangci-lint-action
 
-## Docker
+## Make targets
+
+- **Formatting**
+  - `make fmt` — format code with gofumpt
+  - `make fmt-check` — list files needing formatting (non-empty output fails)
+
+- **Linting and vet**
+  - `make vet` — run go vet on all packages
+  - `make lint` — run golangci-lint (auto-downloads a local binary if missing)
+  - `make lint-all` — fmt-check, vet, containerized golangci-lint, and hadolint
+  - `make docs-validate` — verify required README sections and links
+
+- **Testing and coverage**
+  - `make test-unit` — unit tests (race, coverage profile)
+  - `make test-non-integration` — all non-integration packages (race)
+  - `make coverage-enforce` — enforce coverage threshold (default 80%). Example:
 
 ```bash
-docker build -f build/Dockerfile -t product-update-service-simulator:dev .
-docker run --rm -p 8080:8080 product-update-service-simulator:dev
+COVERAGE_THRESHOLD=85.0 make coverage-enforce
 ```
+
+- **Docker and integration**
+  - `make docker-build` — build container image using `build/Dockerfile`
+  - `make compose-integration` — bring up app, run integration tests, then tear down
+
+- **Security scans**
+  - `make security-govulncheck` — Go vulnerability scan
+  - `make security-gosec` — static security analysis
+  - `make security-gitleaks` — repository secrets scan
+  - `make security-trivy-fs` — filesystem vulnerability scan
+  - `make security-trivy-image` — container image vulnerability scan (expects prior docker-build)
+  - `make security-hadolint` — Dockerfile linter
+
+- **Reports and Pages**
+  - `make reports-unit-junit` — unit test JUnit XML
+  - `make reports-integration-junit` — integration test JUnit XML (via compose)
+  - `make reports-html` — render HTML reports to `_site/` (also versioned)
+  - `make pages-openapi` — publish OpenAPI YAML and Swagger UI to `_site/api/`
 
 ## Troubleshooting Strategies
 

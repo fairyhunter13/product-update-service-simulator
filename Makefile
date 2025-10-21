@@ -5,6 +5,7 @@ COVERAGE_THRESHOLD ?= 80.0
 GOBIN ?= $(shell go env GOPATH)/bin
 BIN_DIR := $(CURDIR)/bin
 GOLANGCI_VERSION ?= 2.5.0
+XUNIT_VIEWER_VERSION ?= 10
 
 .PHONY: tools tools-security fmt fmt-check lint lint-all vet docs-validate test-unit test-non-integration \
 	coverage-enforce docker-build compose-up compose-itest compose-down compose-integration \
@@ -145,16 +146,16 @@ reports-integration-junit:
 	$(MAKE) compose-down
 
 reports-html:
-	mkdir -p _site
-	npx --yes xunit-viewer -r reports -o _site/index.html
-	npx --yes xunit-viewer -r reports/unit -o _site/unit.html
-	npx --yes xunit-viewer -r reports/integration -o _site/integration.html
-	VERSION=$$(git describe --tags --exact-match 2>/dev/null || echo latest); \
-	  mkdir -p _site/$$VERSION; \
-	  cp _site/index.html _site/$$VERSION/index.html; \
-	  cp _site/unit.html _site/$$VERSION/unit.html; \
-	  cp _site/integration.html _site/$$VERSION/integration.html; \
-	  cp -r reports _site/
+    mkdir -p _site
+    npx --yes xunit-viewer@$(XUNIT_VIEWER_VERSION) -r reports -o _site/index.html
+    npx --yes xunit-viewer@$(XUNIT_VIEWER_VERSION) -r reports/unit -o _site/unit.html
+    npx --yes xunit-viewer@$(XUNIT_VIEWER_VERSION) -r reports/integration -o _site/integration.html
+    VERSION=$$(git describe --tags --exact-match 2>/dev/null || echo latest); \
+      mkdir -p _site/$$VERSION; \
+      cp _site/index.html _site/$$VERSION/index.html; \
+      cp _site/unit.html _site/$$VERSION/unit.html; \
+      cp _site/integration.html _site/$$VERSION/integration.html; \
+      cp -r reports _site/
 
 # Publish OpenAPI + Swagger UI to Pages
 pages-openapi:
