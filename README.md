@@ -3,9 +3,9 @@
 [![Test Reports](https://img.shields.io/badge/Test%20Reports-GitHub%20Pages-blue)](https://fairyhunter13.github.io/product-update-service-simulator/)
 [![Unit Report](https://img.shields.io/badge/Unit%20Report-HTML-blue)](https://fairyhunter13.github.io/product-update-service-simulator/unit.html)
 [![Integration Report](https://img.shields.io/badge/Integration%20Report-HTML-blue)](https://fairyhunter13.github.io/product-update-service-simulator/integration.html)
-[![codecov](https://codecov.io/gh/fairyhunter13/product-update-service-simulator/branch/main/graph/badge.svg)](https://codecov.io/gh/fairyhunter13/product-update-service-simulator)
-[![codecov unit](https://codecov.io/gh/fairyhunter13/product-update-service-simulator/branch/main/graph/badge.svg?flag=unit)](https://codecov.io/gh/fairyhunter13/product-update-service-simulator)
-[![codecov integration](https://codecov.io/gh/fairyhunter13/product-update-service-simulator/branch/main/graph/badge.svg?flag=integration)](https://codecov.io/gh/fairyhunter13/product-update-service-simulator)
+[![codecov](https://codecov.io/gh/fairyhunter13/product-update-service-simulator/branch/main/graph/badge.svg?precision=1)](https://app.codecov.io/gh/fairyhunter13/product-update-service-simulator)
+[![codecov unit](https://codecov.io/gh/fairyhunter13/product-update-service-simulator/branch/main/graph/badge.svg?flag=unit&precision=1)](https://app.codecov.io/gh/fairyhunter13/product-update-service-simulator/flags)
+[![codecov integration](https://codecov.io/gh/fairyhunter13/product-update-service-simulator/branch/main/graph/badge.svg?flag=integration&precision=1)](https://app.codecov.io/gh/fairyhunter13/product-update-service-simulator/flags)
 [![CI](https://github.com/fairyhunter13/product-update-service-simulator/workflows/CI/badge.svg)](https://github.com/fairyhunter13/product-update-service-simulator/actions/workflows/ci.yml)
 
 A minimal, production-informed Go service that accepts product update events asynchronously and exposes product state over HTTP. Designed to demonstrate: partial updates, non-blocking ingestion via an effectively-unbounded queue, dynamic worker scaling, strict JSON decoding, structured JSON logging, and graceful shutdown.
