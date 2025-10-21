@@ -145,19 +145,16 @@ reports-integration-junit:
 	$(MAKE) compose-down
 
 reports-html:
-  mkdir -p _site
-  # Combined dashboard
-  npx --yes xunit-viewer -r reports -o _site/index.html
-  # Unit-only and Integration-only pages
-  npx --yes xunit-viewer -r reports/unit -o _site/unit.html
-  npx --yes xunit-viewer -r reports/integration -o _site/integration.html
-  # Versioned history folder: use tag if present, else 'latest'
-  VERSION=$$(git describe --tags --exact-match 2>/dev/null || echo latest); \
-  mkdir -p _site/$$VERSION; \
-  cp _site/index.html _site/$$VERSION/index.html; \
-  cp _site/unit.html _site/$$VERSION/unit.html; \
-	cp _site/integration.html _site/$$VERSION/integration.html; \
-	cp -r reports _site/
+	mkdir -p _site
+	npx --yes xunit-viewer -r reports -o _site/index.html
+	npx --yes xunit-viewer -r reports/unit -o _site/unit.html
+	npx --yes xunit-viewer -r reports/integration -o _site/integration.html
+	VERSION=$$(git describe --tags --exact-match 2>/dev/null || echo latest); \
+	  mkdir -p _site/$$VERSION; \
+	  cp _site/index.html _site/$$VERSION/index.html; \
+	  cp _site/unit.html _site/$$VERSION/unit.html; \
+	  cp _site/integration.html _site/$$VERSION/integration.html; \
+	  cp -r reports _site/
 
 # Publish OpenAPI + Swagger UI to Pages
 pages-openapi:
