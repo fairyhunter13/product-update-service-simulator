@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Codecov Graphs</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'; margin: 16px; }
+      h1 { margin-bottom: 8px; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: start; }
+      .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+      .card h2 { margin: 0 0 8px 0; font-size: 1rem; color: #111827; }
+      img { width: 100%; height: auto; }
+      .links { margin-top: 16px; }
+      .links a { margin-right: 12px; }
+    </style>
+  </head>
+  <body>
+    <h1>Codecov Graphs</h1>
+    <div class="links">
+      <a href="https://codecov.io/gh/fairyhunter13/product-update-service-simulator" target="_blank" rel="noopener">Codecov Dashboard</a>
+      <a href="coverage.html">Local Coverage HTML</a>
+      <a href="unit.html">Unit Report</a>
+      <a href="integration.html">Integration Report</a>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <h2>Sunburst</h2>
+        <img alt="Codecov Sunburst Graph" src="https://codecov.io/gh/fairyhunter13/product-update-service-simulator/graphs/sunburst.svg?token=BI7P8IRTKO" />
+      </div>
+      <div class="card">
+        <h2>Grid</h2>
+        <img alt="Codecov Grid (Tree) Graph" src="https://codecov.io/gh/fairyhunter13/product-update-service-simulator/graphs/tree.svg?token=BI7P8IRTKO" />
+      </div>
+      <div class="card">
+        <h2>Icicle</h2>
+        <img alt="Codecov Icicle Graph" src="https://codecov.io/gh/fairyhunter13/product-update-service-simulator/graphs/icicle.svg?token=BI7P8IRTKO" />
+      </div>
+    </div>
+  </body>
+</html>
