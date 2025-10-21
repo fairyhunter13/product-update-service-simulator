@@ -207,3 +207,204 @@ func TestIntegration_UnsupportedMediaType(t *testing.T) {
 		t.Fatalf("expected 415, got %d", resp.StatusCode)
 	}
 }
+
+func TestIntegration_FullPayloadUpdate(t *testing.T) {
+	waitReady(t)
+	u := baseURL()
+
+	body := []byte(`{"product_id":"p-full","price":12.34,"stock":56}`)
+	r, err := http.NewRequest(http.MethodPost, u+"/events", bytes.NewBuffer(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusAccepted {
+		t.Fatalf("expected 202, got %d", resp.StatusCode)
+	}
+
+	time.Sleep(2 * time.Second)
+
+	rg, err := http.NewRequest(http.MethodGet, u+"/products/p-full", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	respg, err := http.DefaultClient.Do(rg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = respg.Body.Close() }()
+	if respg.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", respg.StatusCode)
+	}
+	var p product
+	if err := json.NewDecoder(respg.Body).Decode(&p); err != nil {
+		t.Fatal(err)
+	}
+	if p.ProductID != "p-full" || p.Price != 12.34 || p.Stock != 56 {
+		t.Fatalf("unexpected product: %+v", p)
+	}
+}
+
+func TestIntegration_OnlyPriceUpdate_Single(t *testing.T) {
+	waitReady(t)
+	u := baseURL()
+
+	body := []byte(`{"product_id":"p-only-price","price":7.77}`)
+	r, err := http.NewRequest(http.MethodPost, u+"/events", bytes.NewBuffer(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusAccepted {
+		t.Fatalf("expected 202, got %d", resp.StatusCode)
+	}
+
+	time.Sleep(2 * time.Second)
+
+	rg, err := http.NewRequest(http.MethodGet, u+"/products/p-only-price", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	respg, err := http.DefaultClient.Do(rg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = respg.Body.Close() }()
+	if respg.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", respg.StatusCode)
+	}
+	var p product
+	if err := json.NewDecoder(respg.Body).Decode(&p); err != nil {
+		t.Fatal(err)
+	}
+	if p.ProductID != "p-only-price" || p.Price != 7.77 || p.Stock != 0 {
+		t.Fatalf("unexpected product: %+v", p)
+	}
+}
+
+func TestIntegration_OnlyStockUpdate_Single(t *testing.T) {
+	waitReady(t)
+	u := baseURL()
+
+	body := []byte(`{"product_id":"p-only-stock","stock":123}`)
+	r, err := http.NewRequest(http.MethodPost, u+"/events", bytes.NewBuffer(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusAccepted {
+		t.Fatalf("expected 202, got %d", resp.StatusCode)
+	}
+
+	time.Sleep(2 * time.Second)
+
+	rg, err := http.NewRequest(http.MethodGet, u+"/products/p-only-stock", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	respg, err := http.DefaultClient.Do(rg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = respg.Body.Close() }()
+	if respg.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", respg.StatusCode)
+	}
+	var p product
+	if err := json.NewDecoder(respg.Body).Decode(&p); err != nil {
+		t.Fatal(err)
+	}
+	if p.ProductID != "p-only-stock" || p.Price != 0 || p.Stock != 123 {
+		t.Fatalf("unexpected product: %+v", p)
+	}
+}
+
+func TestIntegration_MultiStepPartialUpdates(t *testing.T) {
+	waitReady(t)
+	u := baseURL()
+
+	// start with full payload
+	body1 := []byte(`{"product_id":"p-multi","price":1.1,"stock":1}`)
+	r1, err := http.NewRequest(http.MethodPost, u+"/events", bytes.NewBuffer(body1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r1.Header.Set("Content-Type", "application/json")
+	resp1, err := http.DefaultClient.Do(r1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = resp1.Body.Close() }()
+	if resp1.StatusCode != http.StatusAccepted {
+		t.Fatalf("expected 202, got %d", resp1.StatusCode)
+	}
+
+	// then only stock
+	body2 := []byte(`{"product_id":"p-multi","stock":2}`)
+	r2, err := http.NewRequest(http.MethodPost, u+"/events", bytes.NewBuffer(body2))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r2.Header.Set("Content-Type", "application/json")
+	resp2, err := http.DefaultClient.Do(r2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = resp2.Body.Close() }()
+	if resp2.StatusCode != http.StatusAccepted {
+		t.Fatalf("expected 202, got %d", resp2.StatusCode)
+	}
+
+	// then only price
+	body3 := []byte(`{"product_id":"p-multi","price":3.3}`)
+	r3, err := http.NewRequest(http.MethodPost, u+"/events", bytes.NewBuffer(body3))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r3.Header.Set("Content-Type", "application/json")
+	resp3, err := http.DefaultClient.Do(r3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = resp3.Body.Close() }()
+	if resp3.StatusCode != http.StatusAccepted {
+		t.Fatalf("expected 202, got %d", resp3.StatusCode)
+	}
+
+	time.Sleep(2 * time.Second)
+
+	rg, err := http.NewRequest(http.MethodGet, u+"/products/p-multi", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	respg, err := http.DefaultClient.Do(rg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = respg.Body.Close() }()
+	if respg.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", respg.StatusCode)
+	}
+	var p product
+	if err := json.NewDecoder(respg.Body).Decode(&p); err != nil {
+		t.Fatal(err)
+	}
+	if p.ProductID != "p-multi" || p.Price != 3.3 || p.Stock != 2 {
+		t.Fatalf("unexpected product: %+v", p)
+	}
+}
