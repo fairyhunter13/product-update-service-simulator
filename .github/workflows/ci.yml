@@ -58,6 +58,8 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: '1.25.1'
+      - name: Install dev tools
+        run: make tools
       - name: Cache Go modules
         uses: actions/cache@v4
         with:
@@ -109,6 +111,11 @@ jobs:
     needs: [build-test]
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.1'
+      - name: Install dev tools
+        run: make tools
       - name: Integration via docker compose (with coverage)
         run: make compose-integration-coverage
       - name: Upload integration coverage
