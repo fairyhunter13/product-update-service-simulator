@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const jsonCTPrefix = "application/json"
+
 func TestIntegration_MetricsIncreaseAndSane(t *testing.T) {
 	waitReady(t)
 	u := baseURL()
@@ -81,7 +83,7 @@ func TestIntegration_GetUnknownProduct_NotFoundJSON(t *testing.T) {
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", resp.StatusCode)
 	}
-	if ct := resp.Header.Get("Content-Type"); ct == "" || ct[:16] != "application/json" {
+	if ct := resp.Header.Get("Content-Type"); ct == "" || ct[:len(jsonCTPrefix)] != jsonCTPrefix {
 		t.Fatalf("unexpected content-type: %q", ct)
 	}
 	var m map[string]any
@@ -104,7 +106,7 @@ func TestIntegration_GetEmptyID_NotFoundJSON(t *testing.T) {
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", resp.StatusCode)
 	}
-	if ct := resp.Header.Get("Content-Type"); ct == "" || ct[:16] != "application/json" {
+	if ct := resp.Header.Get("Content-Type"); ct == "" || ct[:len(jsonCTPrefix)] != jsonCTPrefix {
 		t.Fatalf("unexpected content-type: %q", ct)
 	}
 	var m map[string]any
@@ -128,7 +130,7 @@ func TestIntegration_MethodNotAllowedOnProductsID(t *testing.T) {
 	if resp.StatusCode != http.StatusMethodNotAllowed {
 		t.Fatalf("expected 405, got %d", resp.StatusCode)
 	}
-	if ct := resp.Header.Get("Content-Type"); ct == "" || ct[:16] != "application/json" {
+	if ct := resp.Header.Get("Content-Type"); ct == "" || ct[:len(jsonCTPrefix)] != jsonCTPrefix {
 		t.Fatalf("unexpected content-type: %q", ct)
 	}
 	var m map[string]any
@@ -165,7 +167,7 @@ func TestIntegration_GetExistingProduct_JSONShape(t *testing.T) {
 	if respG.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", respG.StatusCode)
 	}
-	if ct := respG.Header.Get("Content-Type"); ct == "" || ct[:16] != "application/json" {
+	if ct := respG.Header.Get("Content-Type"); ct == "" || ct[:len(jsonCTPrefix)] != jsonCTPrefix {
 		t.Fatalf("unexpected content-type: %q", ct)
 	}
 	var m map[string]any
@@ -215,7 +217,7 @@ func TestIntegration_ResponseContentTypeHeaders(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = resp1.Body.Close() }()
-	if ct := resp1.Header.Get("Content-Type"); ct == "" || ct[:16] != "application/json" {
+	if ct := resp1.Header.Get("Content-Type"); ct == "" || ct[:len(jsonCTPrefix)] != jsonCTPrefix {
 		t.Fatalf("unexpected content-type: %q", ct)
 	}
 	// healthz content-type
@@ -224,7 +226,7 @@ func TestIntegration_ResponseContentTypeHeaders(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = resp2.Body.Close() }()
-	if ct := resp2.Header.Get("Content-Type"); ct == "" || ct[:16] != "application/json" {
+	if ct := resp2.Header.Get("Content-Type"); ct == "" || ct[:len(jsonCTPrefix)] != jsonCTPrefix {
 		t.Fatalf("unexpected content-type: %q", ct)
 	}
 }
