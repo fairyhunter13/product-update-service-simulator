@@ -82,6 +82,11 @@ docs-validate:
 test-unit:
 	go test ./internal/... -race -covermode=atomic -coverprofile=coverage.out
 
+# Unit tests (verbose) with coverage and JUnit XML in one pass
+test-unit-junit:
+	mkdir -p reports/unit
+	set -o pipefail; go test -v ./internal/... -race -covermode=atomic -coverprofile=coverage.out 2>&1 | $(GOBIN)/go-junit-report -set-exit-code -out reports/unit/junit.xml
+
 # Race tests for all non-integration packages
 # Excludes root-level test/integration
 test-non-integration:
@@ -110,6 +115,13 @@ compose-down:
 	docker compose down -v
 
 compose-integration: compose-up compose-itest compose-down
+
+# Integration with coverage profile written to repo root as integration.coverage.out
+compose-integration-coverage:
+	$(MAKE) compose-up
+	mkdir -p reports/integration
+	set -o pipefail; docker compose run --rm itest test ./test/integration -v -coverprofile=/workspace/integration.coverage.out 2>&1 | $(GOBIN)/go-junit-report -set-exit-code -out reports/integration/junit.xml
+	$(MAKE) compose-down
 
 # Security - Go
 security-govulncheck:

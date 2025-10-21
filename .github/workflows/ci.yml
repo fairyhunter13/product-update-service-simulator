@@ -69,22 +69,33 @@ jobs:
             ${{ runner.os }}-go-
       - name: Vet
         run: make vet
-      - name: Test internal packages (race, coverage for gate)
-        run: make test-unit
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+      - name: Test internal packages (race, coverage + JUnit)
+        run: make test-unit-junit
+      - name: Upload coverage to Codecov (unit)
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        if: ${{ env.CODECOV_TOKEN != '' }}
+        uses: codecov/codecov-action@v5
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ env.CODECOV_TOKEN }}
           files: coverage.out
           flags: unit
           fail_ci_if_error: false
+      - name: Upload unit test results to Codecov
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        if: ${{ env.CODECOV_TOKEN != '' && !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ env.CODECOV_TOKEN }}
+          flags: unit
       - name: Test all non-integration packages (race)
         run: make test-non-integration
       - name: Enforce coverage threshold
         env:
           COVERAGE_THRESHOLD: '80.0'
         run: make coverage-enforce
-      - name: Upload coverage
+      - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
         with:
           name: coverage
@@ -98,8 +109,32 @@ jobs:
     needs: [build-test]
     steps:
       - uses: actions/checkout@v4
-      - name: Integration via docker compose
-        run: make compose-integration
+      - name: Integration via docker compose (with coverage)
+        run: make compose-integration-coverage
+      - name: Upload integration coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-coverage
+          path: integration.coverage.out
+          retention-days: 30
+      - name: Upload integration coverage to Codecov
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        if: ${{ env.CODECOV_TOKEN != '' }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ env.CODECOV_TOKEN }}
+          files: integration.coverage.out
+          flags: integration
+          fail_ci_if_error: false
+      - name: Upload integration test results to Codecov
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        if: ${{ env.CODECOV_TOKEN != '' && !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ env.CODECOV_TOKEN }}
+          flags: integration
 
   container-security:
     runs-on: ubuntu-latest
