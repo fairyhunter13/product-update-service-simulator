@@ -180,9 +180,9 @@ reports-html:
 
 # Publish Codecov graphs page to Pages (requires Codecov Graph Token; falls back to example token)
 pages-codecov-graphs:
-    mkdir -p _site
-    TOKEN=$${CODECOV_GRAPH_TOKEN:-BI7P8IRTKO}; \
-    cat > _site/codecov.html <<EOF
+	mkdir -p _site
+	TOKEN=$${CODECOV_GRAPH_TOKEN:-BI7P8IRTKO}; \
+	cat > _site/codecov.html <<EOF
 <!doctype html>
 <html>
   <head>
@@ -225,9 +225,9 @@ pages-codecov-graphs:
   </body>
 </html>
 EOF
-    VERSION=$$(git describe --tags --exact-match 2>/dev/null || echo latest); \
-      mkdir -p _site/$$VERSION; \
-      cp _site/codecov.html _site/$$VERSION/codecov.html
+	VERSION=$$(git describe --tags --exact-match 2>/dev/null || echo latest); \
+	  mkdir -p _site/$$VERSION; \
+	  cp _site/codecov.html _site/$$VERSION/codecov.html
 
 # Publish OpenAPI + Swagger UI to Pages
 pages-openapi:
