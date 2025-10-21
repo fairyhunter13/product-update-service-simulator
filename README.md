@@ -3,8 +3,26 @@
 [![Test Reports](https://img.shields.io/badge/Test%20Reports-GitHub%20Pages-blue)](https://fairyhunter13.github.io/product-update-service-simulator/)
 [![Unit Report](https://img.shields.io/badge/Unit%20Report-HTML-blue)](https://fairyhunter13.github.io/product-update-service-simulator/unit.html)
 [![Integration Report](https://img.shields.io/badge/Integration%20Report-HTML-blue)](https://fairyhunter13.github.io/product-update-service-simulator/integration.html)
+[![Coverage](https://img.shields.io/badge/Coverage-HTML-blue)](https://fairyhunter13.github.io/product-update-service-simulator/coverage.html)
 
 A minimal, production-informed Go service that accepts product update events asynchronously and exposes product state over HTTP. Designed to demonstrate: partial updates, non-blocking ingestion via an effectively-unbounded queue, dynamic worker scaling, strict JSON decoding, structured JSON logging, and graceful shutdown.
+
+## Table of Contents
+
+- [Setup Instructions](#setup-instructions)
+- [Docker](#docker)
+- [Environment variables](#environment-variables)
+- [API](#api)
+- [Design Choices](#design-choices)
+- [Production Considerations](#production-considerations)
+- [Project layout](#project-layout)
+- [Testing](#testing)
+- [Reports (GitHub Pages)](#reports-github-pages)
+- [CI/CD](#cicd)
+- [Linting note](#linting-note)
+- [Make targets](#make-targets)
+- [Troubleshooting Strategies](#troubleshooting-strategies)
+- [License](#license)
 
 ## Setup Instructions
 
@@ -19,17 +37,24 @@ go run ./cmd/product-update-service-simulator
 HTTP_ADDR=":8080" WORKER_MIN=3 WORKER_MAX=8 go run ./cmd/product-update-service-simulator
 ```
 
-- Send events (partial updates allowed)
+### Quickstart
+
 ```bash
-curl -i -X POST "http://localhost:8080/events" \
+# Run the service
+go run ./cmd/product-update-service-simulator
+
+# Send an event (partial update allowed)
+curl -s -X POST http://localhost:8080/events \
   -H "Content-Type: application/json" \
   -H "X-Request-Id: demo-req-1" \
-  -d '{"product_id":"p-1","price":10.5}'
-```
+  -d '{"product_id":"p-1","price":10.5,"stock":7}'
 
-- Get product state
-```bash
-curl -i "http://localhost:8080/products/p-1"
+# Get product state
+curl -s http://localhost:8080/products/p-1
+
+# Health and metrics
+curl -s http://localhost:8080/healthz
+curl -s http://localhost:8080/debug/metrics
 ```
 
 ## Docker
@@ -51,6 +76,17 @@ docker run --rm -p 8080:8080 product-update-service-simulator:dev
 - QUEUE_HIGH_WATERMARK (default 5000): soft cap; warn when backlog exceeds (no drops)
 
 ## API
+
+### Endpoints at a glance
+
+| Method | Path             | Description                        | Status codes            |
+|--------|------------------|------------------------------------|-------------------------|
+| POST   | /events          | Enqueue a product update event      | 202, 400, 415, 503      |
+| GET    | /products/{id}   | Get product state by id            | 200, 404                |
+| GET    | /healthz         | Health check                       | 200                     |
+| GET    | /debug/metrics   | Service metrics (JSON)             | 200                     |
+| GET    | /openapi.yaml    | OpenAPI specification (YAML)       | 200                     |
+| GET    | /docs            | Swagger UI                         | 200                     |
 
 - POST /events
   - Content-Type: application/json (strict). Unknown fields → 400.
@@ -80,25 +116,24 @@ docker run --rm -p 8080:8080 product-update-service-simulator:dev
 
   - GET /healthz
     - 200 with `{ "status": "ok" }`
+    
+    Example:
+    ```bash
+    curl -s http://localhost:8080/healthz
+    ```
 
   - GET /debug/metrics
     - 200 with JSON metrics: `events_enqueued`, `events_processed`, `backlog_size`, `queue_depth`, `worker_count`, `uptime_sec`
+    
+    Example:
+    ```bash
+    curl -s http://localhost:8080/debug/metrics
+    ```
 
   - GET /debug/vars
     - expvar endpoint exposing Go runtime and custom variables
 
-## Reports (GitHub Pages)
-
-- **Dashboard**: https://fairyhunter13.github.io/product-update-service-simulator/
-- **Unit only**: https://fairyhunter13.github.io/product-update-service-simulator/unit.html
-- **Integration only**: https://fairyhunter13.github.io/product-update-service-simulator/integration.html
-- **Versioned (latest) - Unit**: https://fairyhunter13.github.io/product-update-service-simulator/latest/unit.html
-- **Versioned (latest) - Integration**: https://fairyhunter13.github.io/product-update-service-simulator/latest/integration.html
-- **Raw JUnit XML (unit)**: https://fairyhunter13.github.io/product-update-service-simulator/reports/unit/unit.xml
-- **Raw JUnit XML (integration)**: https://fairyhunter13.github.io/product-update-service-simulator/reports/integration/integration.xml
-- **History by tag**: https://fairyhunter13.github.io/product-update-service-simulator/<tag>/ (e.g., `/v1.0.0/`)
-
-
+ 
 ## Design Choices
 
 - Queue & ingestion
@@ -194,6 +229,19 @@ docker compose run --rm itest
 docker compose down -v
 ```
 
+## Reports (GitHub Pages)
+
+- **Dashboard**: https://fairyhunter13.github.io/product-update-service-simulator/
+- **Unit only**: https://fairyhunter13.github.io/product-update-service-simulator/unit.html
+- **Integration only**: https://fairyhunter13.github.io/product-update-service-simulator/integration.html
+- **Coverage (HTML)**: https://fairyhunter13.github.io/product-update-service-simulator/coverage.html
+- **Versioned (latest) - Unit**: https://fairyhunter13.github.io/product-update-service-simulator/latest/unit.html
+- **Versioned (latest) - Integration**: https://fairyhunter13.github.io/product-update-service-simulator/latest/integration.html
+- **Versioned (latest) - Coverage**: https://fairyhunter13.github.io/product-update-service-simulator/latest/coverage.html
+- **Raw JUnit XML (unit)**: https://fairyhunter13.github.io/product-update-service-simulator/reports/unit/unit.xml
+- **Raw JUnit XML (integration)**: https://fairyhunter13.github.io/product-update-service-simulator/reports/integration/integration.xml
+- **History by tag**: https://fairyhunter13.github.io/product-update-service-simulator/<tag>/ (e.g., `/v1.0.0/`)
+
 ## CI/CD
 
 - GitHub Actions (`.github/workflows/ci.yml`)
@@ -281,6 +329,7 @@ COVERAGE_THRESHOLD=85.0 make coverage-enforce
 - **Reports and Pages**
   - `make reports-unit-junit` — unit test JUnit XML
   - `make reports-integration-junit` — integration test JUnit XML (via compose)
+  - `make reports-coverage-html` — generate coverage HTML into `_site/` (also versioned when publishing)
   - `make reports-html` — render HTML reports to `_site/` (also versioned)
   - `make pages-openapi` — publish OpenAPI YAML and Swagger UI to `_site/api/`
   

@@ -146,6 +146,13 @@ reports-integration-junit:
 	set -o pipefail; docker compose run --rm itest 2>&1 | $(GOBIN)/go-junit-report -set-exit-code -out reports/integration/integration.xml
 	$(MAKE) compose-down
 
+reports-coverage-html:
+	mkdir -p _site
+	if [ ! -f coverage.out ]; then \
+		go test ./... -race -covermode=atomic -coverprofile=coverage.out; \
+	fi
+	go tool cover -html=coverage.out -o _site/coverage.html
+
 reports-html:
 	mkdir -p _site
 	npx --yes xunit-viewer@$(XUNIT_VIEWER_VERSION) -r reports -o _site/index.html
@@ -156,6 +163,7 @@ reports-html:
 	  cp _site/index.html _site/$$VERSION/index.html; \
 	  cp _site/unit.html _site/$$VERSION/unit.html; \
 	  cp _site/integration.html _site/$$VERSION/integration.html; \
+	  if [ -f _site/coverage.html ]; then cp _site/coverage.html _site/$$VERSION/coverage.html; fi; \
 	  cp -r reports _site/
 
 # Publish OpenAPI + Swagger UI to Pages

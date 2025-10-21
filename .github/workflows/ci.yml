@@ -157,10 +157,17 @@ jobs:
           node-version: '20'
       - name: Install dev and security tools
         run: make tools tools-security
+      - name: Download coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage
+          path: .
       - name: "Generate JUnit: unit tests"
         run: make reports-unit-junit
       - name: "Generate JUnit: integration tests"
         run: make reports-integration-junit
+      - name: Generate coverage HTML
+        run: make reports-coverage-html
       - name: Render HTML reports
         run: make reports-html
       - name: Publish API docs (OpenAPI + Swagger UI)
