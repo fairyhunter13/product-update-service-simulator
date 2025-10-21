@@ -71,6 +71,13 @@ jobs:
         run: make vet
       - name: Test internal packages (race, coverage for gate)
         run: make test-unit
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.out
+          flags: unit
+          fail_ci_if_error: false
       - name: Test all non-integration packages (race)
         run: make test-non-integration
       - name: Enforce coverage threshold
@@ -82,6 +89,7 @@ jobs:
         with:
           name: coverage
           path: coverage.out
+          retention-days: 30
       - name: Docker build
         run: make docker-build
 

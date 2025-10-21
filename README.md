@@ -3,9 +3,11 @@
 [![Test Reports](https://img.shields.io/badge/Test%20Reports-GitHub%20Pages-blue)](https://fairyhunter13.github.io/product-update-service-simulator/)
 [![Unit Report](https://img.shields.io/badge/Unit%20Report-HTML-blue)](https://fairyhunter13.github.io/product-update-service-simulator/unit.html)
 [![Integration Report](https://img.shields.io/badge/Integration%20Report-HTML-blue)](https://fairyhunter13.github.io/product-update-service-simulator/integration.html)
-[![Coverage](https://img.shields.io/badge/Coverage-HTML-blue)](https://fairyhunter13.github.io/product-update-service-simulator/coverage.html)
+[![codecov](https://codecov.io/gh/fairyhunter13/product-update-service-simulator/branch/main/graph/badge.svg)](https://codecov.io/gh/fairyhunter13/product-update-service-simulator)
 
 A minimal, production-informed Go service that accepts product update events asynchronously and exposes product state over HTTP. Designed to demonstrate: partial updates, non-blocking ingestion via an effectively-unbounded queue, dynamic worker scaling, strict JSON decoding, structured JSON logging, and graceful shutdown.
+
+[Jump to Quickstart](#quickstart)
 
 ## Table of Contents
 
@@ -34,7 +36,7 @@ A minimal, production-informed Go service that accepts product update events asy
 ```bash
 go run ./cmd/product-update-service-simulator
 # or
-HTTP_ADDR=":8080" WORKER_MIN=3 WORKER_MAX=8 go run ./cmd/product-update-service-simulator
+HTTP_ADDR=":8080" WORKER_MIN=3 WORKER_MAX=5 go run ./cmd/product-update-service-simulator
 ```
 
 ### Quickstart
@@ -55,6 +57,9 @@ curl -s http://localhost:8080/products/p-1
 # Health and metrics
 curl -s http://localhost:8080/healthz
 curl -s http://localhost:8080/debug/metrics
+
+# API docs
+echo "OpenAPI: http://localhost:8080/openapi.yaml" && echo "Swagger UI: http://localhost:8080/docs"
 ```
 
 ## Docker
@@ -69,7 +74,7 @@ docker run --rm -p 8080:8080 product-update-service-simulator:dev
 - HTTP_ADDR (default ":8080"): HTTP listen address
 - SHUTDOWN_TIMEOUT (seconds, default 15): drain window before exit
 - WORKER_COUNT (default = WORKER_MIN): initial worker count
-- WORKER_MIN (default 3), WORKER_MAX (default 8): worker bounds
+- WORKER_MIN (default 3), WORKER_MAX (default 5): worker bounds
 - SCALE_INTERVAL_MS (default 500): scaler tick interval (ms)
 - SCALE_UP_BACKLOG_PER_WORKER (default 100): scale-up threshold per worker
 - SCALE_DOWN_IDLE_TICKS (default 6): scale-down after this many idle ticks
@@ -81,19 +86,27 @@ docker run --rm -p 8080:8080 product-update-service-simulator:dev
 
 | Method | Path             | Description                        | Status codes            |
 |--------|------------------|------------------------------------|-------------------------|
-| POST   | /events          | Enqueue a product update event      | 202, 400, 415, 503      |
-| GET    | /products/{id}   | Get product state by id            | 200, 404                |
-| GET    | /healthz         | Health check                       | 200                     |
-| GET    | /debug/metrics   | Service metrics (JSON)             | 200                     |
+| POST   | /events          | Enqueue a product update event ([examples](#post-events)) | 202, 400, 415, 503      |
+| GET    | /products/{id}   | Get product state by id ([examples](#get-products))      | 200, 404                |
+| GET    | /healthz         | Health check ([examples](#get-healthz))                  | 200                     |
+| GET    | /debug/metrics   | Service metrics (JSON) ([examples](#get-metrics))        | 200                     |
 | GET    | /openapi.yaml    | OpenAPI specification (YAML)       | 200                     |
 | GET    | /docs            | Swagger UI                         | 200                     |
 
+See examples: [POST /events](#post-events), [GET /products/{id}](#get-products), [GET /healthz](#get-healthz), [GET /debug/metrics](#get-metrics).
+
+<a id="post-events"></a>
 - POST /events
   - Content-Type: application/json (strict). Unknown fields → 400.
   - Body: `{ "product_id": "...", "price": 12.3?, "stock": 7? }`
     - `product_id` required
     - `price` and/or `stock` optional, each `>= 0` when present
   - Response: `202 Accepted` with JSON acknowledgment
+  - Status codes:
+    - `202` on successful enqueue
+    - `400` on validation/unknown fields
+    - `415` when `Content-Type` is not `application/json`
+    - `503` during shutdown drain
 ```json
 {
   "status": "accepted",
@@ -106,14 +119,34 @@ docker run --rm -p 8080:8080 product-update-service-simulator:dev
   "worker_count": 4
 }
 ```
+  - Error examples
+    - 400 (validation):
+      ```json
+      { "error": "validation_error", "details": "price must be >= 0" }
+      ```
+    - 400 (unknown fields):
+      ```json
+      { "error": "invalid_json", "details": "json: unknown field \"unexpected\"" }
+      ```
+    - 415 (unsupported media type):
+      ```json
+      { "error": "unsupported_media_type", "details": "expected application/json" }
+      ```
   - During shutdown: `503` `{ "error": "shutting_down" }`
   - API Documentation: `/openapi.yaml` (OpenAPI) and `/docs` (Swagger UI)
     - Local links: http://localhost:8080/openapi.yaml and http://localhost:8080/docs
     - Static (GitHub Pages): https://fairyhunter13.github.io/product-update-service-simulator/api/ and https://fairyhunter13.github.io/product-update-service-simulator/api/openapi.yaml
   
+  <a id="get-products"></a>
   - GET /products/{id}
     - 200 with `{ "product_id", "price", "stock" }` or 404 if unknown
+    
+    Example 404:
+    ```json
+    { "error": "not_found" }
+    ```
 
+  <a id="get-healthz"></a>
   - GET /healthz
     - 200 with `{ "status": "ok" }`
     
@@ -122,8 +155,11 @@ docker run --rm -p 8080:8080 product-update-service-simulator:dev
     curl -s http://localhost:8080/healthz
     ```
 
+  <a id="get-metrics"></a>
   - GET /debug/metrics
     - 200 with JSON metrics: `events_enqueued`, `events_processed`, `backlog_size`, `queue_depth`, `worker_count`, `uptime_sec`
+
+Note: status codes follow standard semantics (2xx success, 4xx client error, 5xx server error). See examples above for common cases.
     
     Example:
     ```bash
@@ -145,6 +181,7 @@ docker run --rm -p 8080:8080 product-update-service-simulator:dev
   - Scale up when `backlog_size > worker_count * SCALE_UP_BACKLOG_PER_WORKER`
   - Scale down after `SCALE_DOWN_IDLE_TICKS` intervals of zero backlog
   - Clamped to `[WORKER_MIN, WORKER_MAX]`
+  - Default worker range: 3–5
 - Store semantics
   - Thread-safe map with `sync.RWMutex`
   - Partial updates: only provided fields mutate state
@@ -252,6 +289,7 @@ docker compose down -v
   - Container security: image scan via `trivy image`
   - Release: multi-arch build-and-push to GHCR on tags
   - GitHub Pages: publish unit/integration HTML reports and API docs (OpenAPI + Swagger UI)
+  - Codecov: upload `coverage.out` via `codecov/codecov-action@v4` for coverage badge and history
 
 ### Linting note
 
