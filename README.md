@@ -441,6 +441,32 @@ COVERAGE_THRESHOLD=85.0 make coverage-enforce
   - If shutting down, POST will return 503; wait for drain to complete.
   - For RabbitMQ: check queue depth, unacked messages, and DLQ counts. Verify consumers are acknowledging (no stuck unacked), publisher confirms are enabled and succeeding, and retry routing (TTL/DLX) is working as expected.
 
+## Assignment Requirements Mapping
+
+- **API Endpoints**
+  - Implementation: `internal/http/router.go`, `internal/http/handlers.go`, `internal/model/types.go`
+  - Docs: `README.md` — `## API` with examples; `internal/http/openapi/openapi.yaml`; served at `/openapi.yaml` and `/docs`
+  - Endpoints: `POST /events`, `GET /products/{id}`, plus `GET /healthz`, `GET /debug/metrics`, `GET /debug/vars`
+
+- **Asynchronous Processing**
+  - Queue and workers: `internal/queue/queue.go`, `internal/queue/manager.go`
+  - Store (thread-safe, LWW): `internal/store/store.go`
+  - Configurables: `internal/config/config.go` (`WORKER_MIN`, `WORKER_MAX`, `WORKER_COUNT`, `SCALE_*`, `QUEUE_HIGH_WATERMARK`)
+  - Docs: `README.md` — `## Design Choices`
+
+- **Testing**
+  - Unit/API behavior: `internal/http/handlers_test.go`
+  - Concurrency/LWW: `internal/store/store_test.go`
+  - In-process integration: `internal/integration/`
+  - End-to-end (Compose): `test/integration/`
+  - Commands: `README.md` — `## Testing`; `Makefile` targets (`test-unit`, `test-non-integration`, `compose-integration*`, `coverage-enforce`)
+
+- **Documentation**
+  - Setup: `README.md` — `## Setup Instructions`
+  - Design Choices: `README.md` — `## Design Choices`
+  - Production Considerations: `README.md` — `## Production Considerations`
+  - Troubleshooting Strategies: `README.md` — `## Troubleshooting Strategies`
+
 ## License
 
 MIT
