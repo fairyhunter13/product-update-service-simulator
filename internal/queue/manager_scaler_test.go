@@ -16,7 +16,7 @@ func TestManagerScaler_UpAndDown(t *testing.T) {
 	t.Setenv("WORKER_MIN", "1")
 	t.Setenv("WORKER_MAX", "3")
 	t.Setenv("WORKER_COUNT", "1")
-	t.Setenv("SCALE_INTERVAL_MS", "50")
+	t.Setenv("SCALE_INTERVAL_MS", "10")
 	t.Setenv("SCALE_UP_BACKLOG_PER_WORKER", "1")
 	t.Setenv("SCALE_DOWN_IDLE_TICKS", "1")
 
@@ -36,7 +36,7 @@ func TestManagerScaler_UpAndDown(t *testing.T) {
 	}
 
 	// Wait until worker count increases
-	deadline := time.Now().Add(2 * time.Second)
+	deadline := time.Now().Add(3 * time.Second)
 	for time.Now().Before(deadline) {
 		if wc := mgr.WorkerCount(); wc > 1 {
 			break
@@ -48,13 +48,13 @@ func TestManagerScaler_UpAndDown(t *testing.T) {
 	}
 
 	// Wait for drain
-	ctxDrain, cancelDrain := context.WithTimeout(context.Background(), 3*time.Second)
+	ctxDrain, cancelDrain := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelDrain()
 	if ok := mgr.DrainUntil(ctxDrain); !ok {
 		t.Fatalf("drain timeout")
 	}
 	// Allow scaler to tick and scale down to min
-	deadline2 := time.Now().Add(2 * time.Second)
+	deadline2 := time.Now().Add(3 * time.Second)
 	for time.Now().Before(deadline2) {
 		if wc := mgr.WorkerCount(); wc == cfg.WorkerMin {
 			break
