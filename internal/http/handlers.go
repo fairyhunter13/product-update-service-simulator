@@ -14,6 +14,7 @@ import (
 	"github.com/fairyhunter13/product-update-service-simulator/internal/store"
 )
 
+// App wires configuration, store, and queue manager for HTTP handlers.
 type App struct {
 	Cfg     config.Config
 	Store   *store.Store
@@ -23,20 +24,26 @@ type App struct {
 }
 
 type ack struct {
-	Status      string `json:"status"`
-	RequestID   string `json:"request_id"`
-	Sequence    uint64 `json:"sequence"`
-	ProductID   string `json:"product_id"`
-	ReceivedAt  string `json:"received_at"`
-	QueueDepth  int    `json:"queue_depth"`
-	BacklogSize int    `json:"backlog_size"`
-	WorkerCount int    `json:"worker_count"`
+	Status    string `json:"status"`
+	RequestID string `json:"request_id"`
+	Sequence  uint64 `json:"sequence"`
+	ProductID string `json:"product_id"`
+	// ReceivedAt is the timestamp when the event was received.
+	ReceivedAt string `json:"received_at"`
+	// QueueDepth is the current depth of the queue.
+	QueueDepth int `json:"queue_depth"`
+	// BacklogSize is the current size of the backlog.
+	BacklogSize int `json:"backlog_size"`
+	// WorkerCount is the number of workers.
+	WorkerCount int `json:"worker_count"`
 }
 
+// NewApp constructs an App.
 func NewApp(cfg config.Config, st *store.Store, m *queue.Manager) *App {
 	return &App{Cfg: cfg, Store: st, Manager: m, started: time.Now()}
 }
 
+// StartShutdown initiates graceful shutdown.
 func (a *App) StartShutdown() {
 	a.closing = true
 	a.Manager.CloseIntake()
@@ -130,13 +137,15 @@ func (a *App) getProductHandler(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(p)
 }
 
-func (a *App) healthHandler(w http.ResponseWriter, r *http.Request) {
+// healthHandler returns a simple health check response.
+func (a *App) healthHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
-func (a *App) metricsHandler(w http.ResponseWriter, r *http.Request) {
+// metricsHandler returns queue metrics.
+func (a *App) metricsHandler(w http.ResponseWriter, _ *http.Request) {
 	enq, proc, backlog, depth := a.Manager.QueueMetrics()
 	m := map[string]any{
 		"events_enqueued":  enq,
@@ -150,12 +159,14 @@ func (a *App) metricsHandler(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(m)
 }
 
-func (a *App) openapiHandler(w http.ResponseWriter, r *http.Request) {
+// openapiHandler returns the OpenAPI definition.
+func (a *App) openapiHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/yaml")
 	_, _ = w.Write(httpopenapi.YAML)
 }
 
-func (a *App) docsHandler(w http.ResponseWriter, r *http.Request) {
+// docsHandler returns the API documentation.
+func (a *App) docsHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	html := `<!doctype html>
 <html>
