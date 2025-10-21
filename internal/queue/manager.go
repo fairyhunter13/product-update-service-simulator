@@ -11,6 +11,7 @@ import (
 	"github.com/fairyhunter13/product-update-service-simulator/internal/store"
 )
 
+// Manager coordinates workers processing queued events and scaling.
 type Manager struct {
 	cfg    config.Config
 	q      *Queue
@@ -23,10 +24,12 @@ type Manager struct {
 	workerCancels []context.CancelFunc
 }
 
+// NewManager constructs a Manager with the given config, queue, and store.
 func NewManager(cfg config.Config, q *Queue, st *store.Store) *Manager {
 	return &Manager{cfg: cfg, q: q, st: st}
 }
 
+// Start begins processing and autoscaling in the background.
 func (m *Manager) Start(parent context.Context) {
 	m.ctx, m.cancel = context.WithCancel(parent)
 	m.q.Start(m.ctx, m.cfg.QueueHighWatermark)
@@ -34,6 +37,7 @@ func (m *Manager) Start(parent context.Context) {
 	go m.scaler()
 }
 
+// Stop cancels background routines and stops workers.
 func (m *Manager) Stop() {
 	if m.cancel != nil {
 		m.cancel()
@@ -46,6 +50,7 @@ func (m *Manager) Stop() {
 	m.mu.Unlock()
 }
 
+// scaler adjusts worker count based on backlog and configuration.
 func (m *Manager) scaler() {
 	t := time.NewTicker(m.cfg.ScaleInterval)
 	defer t.Stop()
@@ -75,6 +80,7 @@ func (m *Manager) scaler() {
 	}
 }
 
+// addWorkers spawns n workers.
 func (m *Manager) addWorkers(n int) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -86,6 +92,7 @@ func (m *Manager) addWorkers(n int) {
 	obs.Logger.Info("workers scaled", "worker_count", len(m.workerCancels))
 }
 
+// removeWorkers stops up to n workers.
 func (m *Manager) removeWorkers(n int) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -100,6 +107,7 @@ func (m *Manager) removeWorkers(n int) {
 	obs.Logger.Info("workers scaled", "worker_count", len(m.workerCancels))
 }
 
+// worker drains events from the queue and updates the store.
 func (m *Manager) worker(ctx context.Context) {
 	for {
 		select {
@@ -112,28 +120,37 @@ func (m *Manager) worker(ctx context.Context) {
 	}
 }
 
+// Enqueue proxies to the underlying queue.
 func (m *Manager) Enqueue(ev model.Event) bool { return m.q.Enqueue(ev) }
 
+// BacklogSize returns pending items in the queue.
 func (m *Manager) BacklogSize() int { return m.q.BacklogSize() }
 
+// QueueDepth returns backlog plus buffered output items.
 func (m *Manager) QueueDepth() int { return m.q.QueueDepth() }
 
+// WorkerCount returns the current number of workers.
 func (m *Manager) WorkerCount() int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return len(m.workerCancels)
 }
 
+// NextSequence returns the next sequence number.
 func (m *Manager) NextSequence() uint64 { return m.seq.Next() }
 
+// IsShuttingDown reports whether new enqueues are rejected.
 func (m *Manager) IsShuttingDown() bool { return m.q.IsShuttingDown() }
 
+// CloseIntake disallows future enqueues.
 func (m *Manager) CloseIntake() { m.q.CloseIntake() }
 
+// QueueMetrics exposes the underlying queue metrics.
 func (m *Manager) QueueMetrics() (enq, proc uint64, backlog, depth int) {
 	return m.q.Metrics()
 }
 
+// DrainUntil blocks until the queue is fully drained or context is done.
 func (m *Manager) DrainUntil(ctx context.Context) bool {
 	for {
 		enq, proc, backlog, depth := m.q.Metrics()

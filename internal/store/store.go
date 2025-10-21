@@ -1,3 +1,4 @@
+// Package store provides an in-memory product state store for the simulator.
 package store
 
 import (
@@ -6,20 +7,24 @@ import (
 	"github.com/fairyhunter13/product-update-service-simulator/internal/model"
 )
 
+// productState holds a product and its last sequence number.
 type productState struct {
 	p            model.Product
 	lastSequence uint64
 }
 
+// Store holds product states with concurrency protection.
 type Store struct {
 	mu sync.RWMutex
 	m  map[string]productState
 }
 
+// New creates a new in-memory Store.
 func New() *Store {
 	return &Store{m: make(map[string]productState)}
 }
 
+// Get retrieves a product by ID.
 func (s *Store) Get(id string) (model.Product, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -30,6 +35,7 @@ func (s *Store) Get(id string) (model.Product, bool) {
 	return st.p, true
 }
 
+// Upsert applies an event to the product state with simple sequence checks.
 func (s *Store) Upsert(ev model.Event) {
 	if ev.ProductID == "" {
 		return

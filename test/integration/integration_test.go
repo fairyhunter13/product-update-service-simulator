@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -42,10 +43,12 @@ func TestIntegration_DocsServed(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("expected 200, got %d", resp.StatusCode)
 	}
-	// best-effort: read up to a small buffer to search for swagger-ui token
-	buf := make([]byte, 1024)
-	n, _ := resp.Body.Read(buf)
-	if !strings.Contains(string(buf[:n]), "swagger-ui") {
+	// read full page and check for token
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "swagger-ui") {
 		t.Fatalf("expected swagger-ui in docs page")
 	}
 }
@@ -63,17 +66,6 @@ func waitReady(t *testing.T) {
 		time.Sleep(250 * time.Millisecond)
 	}
 	t.Fatalf("service not ready")
-}
-
-type ack struct {
-	Status      string `json:"status"`
-	RequestID   string `json:"request_id"`
-	Sequence    uint64 `json:"sequence"`
-	ProductID   string `json:"product_id"`
-	ReceivedAt  string `json:"received_at"`
-	QueueDepth  int    `json:"queue_depth"`
-	BacklogSize int    `json:"backlog_size"`
-	WorkerCount int    `json:"worker_count"`
 }
 
 type product struct {
@@ -156,7 +148,7 @@ func TestIntegration_PartialUpdates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resp1.Body.Close()
+	_ = resp1.Body.Close()
 	if resp1.StatusCode != http.StatusAccepted {
 		t.Fatalf("expected 202, got %d", resp1.StatusCode)
 	}
@@ -171,13 +163,16 @@ func TestIntegration_PartialUpdates(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resp2.Body.Close()
+	_ = resp2.Body.Close()
 	if resp2.StatusCode != http.StatusAccepted {
 		t.Fatalf("expected 202, got %d", resp2.StatusCode)
 	}
 	// wait and verify
 	time.Sleep(2 * time.Second)
-	rg, _ := http.NewRequest(http.MethodGet, u+"/products/p-up", nil)
+	rg, err := http.NewRequest(http.MethodGet, u+"/products/p-up", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	respg, err := http.DefaultClient.Do(rg)
 	if err != nil {
 		t.Fatal(err)
@@ -198,7 +193,10 @@ func TestIntegration_PartialUpdates(t *testing.T) {
 func TestIntegration_UnsupportedMediaType(t *testing.T) {
 	waitReady(t)
 	u := baseURL()
-	r, _ := http.NewRequest(http.MethodPost, u+"/events", bytes.NewBufferString("{}"))
+	r, err := http.NewRequest(http.MethodPost, u+"/events", bytes.NewBufferString("{}"))
+	if err != nil {
+		t.Fatal(err)
+	}
 	r.Header.Set("Content-Type", "text/plain")
 	resp, err := http.DefaultClient.Do(r)
 	if err != nil {

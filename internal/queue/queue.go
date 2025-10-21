@@ -10,18 +10,19 @@ import (
 	"github.com/fairyhunter13/product-update-service-simulator/internal/obs"
 )
 
+// Queue is a simple buffered event queue with a background broker.
 type Queue struct {
 	mu           sync.Mutex
 	backlog      []model.Event
 	notify       chan struct{}
 	out          chan model.Event
-	closed       atomic.Bool
 	shuttingDown atomic.Bool
 
 	enqueued  atomic.Uint64
 	processed atomic.Uint64
 }
 
+// New creates a Queue with a buffered output channel.
 func New(outBuffer int) *Queue {
 	if outBuffer <= 0 {
 		outBuffer = 64
@@ -32,10 +33,12 @@ func New(outBuffer int) *Queue {
 	}
 }
 
+// Start runs the broker loop.
 func (q *Queue) Start(ctx context.Context, highWatermark int) {
 	go q.broker(ctx, highWatermark)
 }
 
+// broker moves backlog items to the output channel.
 func (q *Queue) broker(ctx context.Context, highWatermark int) {
 	ticker := time.NewTicker(50 * time.Millisecond)
 	defer ticker.Stop()
@@ -55,6 +58,7 @@ func (q *Queue) broker(ctx context.Context, highWatermark int) {
 	}
 }
 
+// flushOnce drains backlog into the output buffer.
 func (q *Queue) flushOnce() {
 	q.mu.Lock()
 	defer q.mu.Unlock()
@@ -65,6 +69,7 @@ func (q *Queue) flushOnce() {
 	}
 }
 
+// Enqueue appends an event into the backlog and notifies the broker.
 func (q *Queue) Enqueue(ev model.Event) bool {
 	if q.shuttingDown.Load() {
 		return false
@@ -80,14 +85,17 @@ func (q *Queue) Enqueue(ev model.Event) bool {
 	return true
 }
 
+// Out exposes the output channel of events.
 func (q *Queue) Out() <-chan model.Event { return q.out }
 
+// BacklogSize returns the number of enqueued-but-not-yet-output events.
 func (q *Queue) BacklogSize() int {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	return len(q.backlog)
 }
 
+// QueueDepth returns backlog plus buffered output items.
 func (q *Queue) QueueDepth() int { // backlog + out buffered items
 	q.mu.Lock()
 	bl := len(q.backlog)
@@ -95,8 +103,10 @@ func (q *Queue) QueueDepth() int { // backlog + out buffered items
 	return bl + len(q.out)
 }
 
+// MarkProcessed increases the processed counter.
 func (q *Queue) MarkProcessed() { q.processed.Add(1) }
 
+// Metrics returns counters and sizes for observability.
 func (q *Queue) Metrics() (enq, proc uint64, backlog, depth int) {
 	enq = q.enqueued.Load()
 	proc = q.processed.Load()
@@ -105,6 +115,8 @@ func (q *Queue) Metrics() (enq, proc uint64, backlog, depth int) {
 	return enq, proc, backlog, depth
 }
 
+// CloseIntake disallows future enqueues.
 func (q *Queue) CloseIntake() { q.shuttingDown.Store(true) }
 
+// IsShuttingDown reports if intake has been closed.
 func (q *Queue) IsShuttingDown() bool { return q.shuttingDown.Load() }
