@@ -23,7 +23,7 @@ func TestLoadDefaults(t *testing.T) {
 	if c.ShutdownTimeout != 15*time.Second {
 		t.Fatalf("ShutdownTimeout default")
 	}
-	if c.WorkerMin != 3 || c.WorkerMax != 8 {
+	if c.WorkerMin != 3 || c.WorkerMax != 5 {
 		t.Fatalf("worker bounds default")
 	}
 	if c.ScaleInterval != 500*time.Millisecond {

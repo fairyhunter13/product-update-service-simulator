@@ -41,6 +41,12 @@ go run ./cmd/product-update-service-simulator
 HTTP_ADDR=":8080" WORKER_MIN=3 WORKER_MAX=5 go run ./cmd/product-update-service-simulator
 ```
 
+- Optional: install local developer tooling
+```bash
+make tools           # gofumpt, go-junit-report
+make tools-security  # govulncheck, gosec
+```
+
 ### Quickstart
 
 ```bash
@@ -92,10 +98,11 @@ docker run --rm -p 8080:8080 product-update-service-simulator:dev
 | GET    | /products/{id}   | Get product state by id ([examples](#get-products))      | 200, 404                |
 | GET    | /healthz         | Health check ([examples](#get-healthz))                  | 200                     |
 | GET    | /debug/metrics   | Service metrics (JSON) ([examples](#get-metrics))        | 200                     |
+| GET    | /debug/vars      | Go expvar runtime variables ([examples](#get-vars))      | 200                     |
 | GET    | /openapi.yaml    | OpenAPI specification (YAML)       | 200                     |
 | GET    | /docs            | Swagger UI                         | 200                     |
 
-See examples: [POST /events](#post-events), [GET /products/{id}](#get-products), [GET /healthz](#get-healthz), [GET /debug/metrics](#get-metrics).
+See examples: [POST /events](#post-events), [GET /products/{id}](#get-products), [GET /healthz](#get-healthz), [GET /debug/metrics](#get-metrics), [GET /debug/vars](#get-vars).
 
 <a id="post-events"></a>
 - POST /events
@@ -167,10 +174,27 @@ Note: status codes follow standard semantics (2xx success, 4xx client error, 5xx
     ```bash
     curl -s http://localhost:8080/debug/metrics
     ```
+    Example response:
+    ```json
+    {
+      "events_enqueued": 5,
+      "events_processed": 5,
+      "backlog_size": 0,
+      "queue_depth": 0,
+      "worker_count": 3,
+      "uptime_sec": 12.34
+    }
+    ```
 
+  <a id="get-vars"></a>
   - GET /debug/vars
     - expvar endpoint exposing Go runtime and custom variables
-
+    
+    Example:
+    ```bash
+    curl -s http://localhost:8080/debug/vars | jq .
+    ```
+ 
  
 ## Design Choices
 
@@ -242,14 +266,22 @@ Note: status codes follow standard semantics (2xx success, 4xx client error, 5xx
 - `internal/obs/` — logging setup
 - `internal/config/` — env-driven configuration
 - `build/Dockerfile` — multi-stage build
+ - `test/integration/` — docker compose-based integration tests targeting a running service
+ - `internal/integration/` — in-process integration tests using `httptest`
+ - `.github/workflows/` — GitHub Actions CI workflows
+ - `.golangci.yml` — golangci-lint configuration
+ - `codecov.yml` — Codecov configuration
+ - `build/pages/` — GitHub Pages assets (Codecov graphs page)
 
 Follows common patterns from the community `golang-standards/project-layout` (use `internal/` for non-exported code; `cmd/` for entrypoints).
 
 ## Testing
 
-- Unit & integration tests
+- Unit and non-integration tests
 ```bash
-go test ./... -race -covermode=atomic -coverprofile=coverage.out
+make test-unit          # race, coverage profile: coverage.out (internal/...)
+make test-non-integration
+make coverage-enforce   # default threshold 80%
 ```
 - Highlights
   - Handlers: happy-path, strict decoding (400 unknown fields), 415 content-type, shutdown 503
@@ -257,6 +289,8 @@ go test ./... -race -covermode=atomic -coverprofile=coverage.out
   - Queue/Manager: non-blocking enqueue, shutdown intake, drain
   - Test layout: unit tests under `internal/...`; integration tests under `test/integration/`
   - Integration: end-to-end HTTP tests against a running service
+
+Note: `go test ./...` also includes `test/integration/`, which expects a running service (defaults to `BASE_URL=http://localhost:8080`). Prefer the Make targets above, or start the service and set `BASE_URL` if running integration tests without Compose.
 
 ### Integration tests (Docker Compose)
 
@@ -267,6 +301,8 @@ docker compose up -d app
 docker compose run --rm itest
 docker compose down -v
 ```
+
+Note: `docker-compose.yml` uses `expose` to enable service-to-service HTTP within the Compose network (the integration test container targets `http://app:8080`). Host access is not required. If you want to curl from the host to the `app` container, map a host port (e.g., add `ports: ["8080:8080"]`).
 
 ## Reports (GitHub Pages)
 
@@ -281,6 +317,7 @@ docker compose down -v
 - **Codecov Graphs (Pages)**: https://fairyhunter13.github.io/product-update-service-simulator/codecov.html
 - **Versioned (latest) - Codecov Graphs**: https://fairyhunter13.github.io/product-update-service-simulator/latest/codecov.html
 - **History by tag**: https://fairyhunter13.github.io/product-update-service-simulator/<tag>/ (e.g., `/v1.0.0/`)
+ - **Versioned (latest) - API Docs**: https://fairyhunter13.github.io/product-update-service-simulator/latest/api/ and https://fairyhunter13.github.io/product-update-service-simulator/latest/api/openapi.yaml
 
 ## CI/CD
 
@@ -378,6 +415,8 @@ COVERAGE_THRESHOLD=85.0 make coverage-enforce
   - `make reports-html` — render HTML reports to `_site/` (also versioned)
   - `make pages-codecov-graphs` — generate Codecov graphs page into `_site/` and versioned copy (uses `CODECOV_GRAPH_TOKEN` secret if available)
   - `make pages-openapi` — publish OpenAPI YAML and Swagger UI to `_site/api/`
+  
+  Note: Local execution of `make reports-html` and related targets requires Node.js (`npx`). CI installs Node 20 via `actions/setup-node@v4`.
   
   Example:
   ```bash

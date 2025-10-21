@@ -52,7 +52,7 @@ func durenvs(key string, defSec int) time.Duration {
 // Load collects configuration from environment with defaults.
 func Load() Config {
 	minWorkers := atoienv("WORKER_MIN", 3)
-	maxWorkers := atoienv("WORKER_MAX", 8)
+	maxWorkers := atoienv("WORKER_MAX", 5)
 	initialWorkers := atoienv("WORKER_COUNT", minWorkers)
 	return Config{
 		HTTPAddr:                getenv("HTTP_ADDR", ":8080"),

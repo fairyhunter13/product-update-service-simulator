@@ -30,12 +30,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              examples:
+                missing_product_id:
+                  summary: Missing product_id
+                  value:
+                    error: validation_error
+                    details: product_id is required
+                negative_price:
+                  summary: Negative price
+                  value:
+                    error: validation_error
+                    details: price must be >= 0
+                unknown_field:
+                  summary: Unknown field
+                  value:
+                    error: invalid_json
+                    details: 'json: unknown field "unexpected"'
         '415':
           description: Unsupported Media Type
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              example:
+                error: unsupported_media_type
+                details: expected application/json
+        '503':
+          description: Service Unavailable (shutting down)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: shutting_down
         '500':
           description: Internal Server Error
           content:
@@ -64,6 +91,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+              example:
+                error: not_found
   /healthz:
     get:
       summary: Liveness/health check

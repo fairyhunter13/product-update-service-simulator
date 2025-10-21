@@ -40,3 +40,6 @@ prompts/
 /_site/
 /reports/
 /coverage.out
+Codecov.md
+Codecov Test Analytics.md
+Codecov graphs.md
