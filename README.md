@@ -4,6 +4,7 @@
 [![Unit Report](https://img.shields.io/badge/Unit%20Report-HTML-blue)](https://fairyhunter13.github.io/product-update-service-simulator/unit.html)
 [![Integration Report](https://img.shields.io/badge/Integration%20Report-HTML-blue)](https://fairyhunter13.github.io/product-update-service-simulator/integration.html)
 [![codecov](https://codecov.io/gh/fairyhunter13/product-update-service-simulator/branch/main/graph/badge.svg)](https://codecov.io/gh/fairyhunter13/product-update-service-simulator)
+[![CI](https://github.com/fairyhunter13/product-update-service-simulator/workflows/CI/badge.svg)](https://github.com/fairyhunter13/product-update-service-simulator/actions/workflows/ci.yml)
 [![codecov unit](https://codecov.io/gh/fairyhunter13/product-update-service-simulator/branch/main/graph/badge.svg?flag=unit)](https://codecov.io/gh/fairyhunter13/product-update-service-simulator)
 [![codecov integration](https://codecov.io/gh/fairyhunter13/product-update-service-simulator/branch/main/graph/badge.svg?flag=integration)](https://codecov.io/gh/fairyhunter13/product-update-service-simulator)
 
@@ -26,6 +27,7 @@ A minimal, production-informed Go service that accepts product update events asy
 - [Linting note](#linting-note)
 - [Make targets](#make-targets)
 - [Troubleshooting Strategies](#troubleshooting-strategies)
+- [Assignment Requirements Mapping](#assignment-requirements-mapping)
 - [License](#license)
 
 ## Setup Instructions
@@ -291,6 +293,19 @@ make coverage-enforce   # default threshold 80%
   - Integration: end-to-end HTTP tests against a running service
 
 Note: `go test ./...` also includes `test/integration/`, which expects a running service (defaults to `BASE_URL=http://localhost:8080`). Prefer the Make targets above, or start the service and set `BASE_URL` if running integration tests without Compose.
+
+#### Run integration tests locally (without Compose)
+
+```bash
+# Terminal A: start the service locally
+go run ./cmd/product-update-service-simulator
+
+# Terminal B: run integration tests against the local service
+BASE_URL=http://localhost:8080 go test ./test/integration -v
+
+# Optional: generate integration coverage profile locally
+BASE_URL=http://localhost:8080 go test ./test/integration -v -coverprofile=integration.coverage.out
+```
 
 ### Integration tests (Docker Compose)
 
