@@ -98,6 +98,8 @@ jobs:
     needs: [build-test]
     steps:
       - uses: actions/checkout@v4
+      - name: Docker build (for scan)
+        run: make docker-build
       - name: Image vulnerability scan (Trivy Image)
         run: make security-trivy-image
 

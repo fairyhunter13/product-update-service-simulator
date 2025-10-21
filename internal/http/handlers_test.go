@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -111,6 +112,8 @@ func TestMetricsHandler(t *testing.T) {
 
 func setupApp(t *testing.T) (*App, *queue.Manager, context.CancelFunc, http.Handler) {
 	t.Helper()
+	// Ensure deterministic processing order in tests
+	_ = os.Setenv("WORKER_COUNT", "1")
 	cfg := config.Load()
 	obs.InitLogger()
 	st := store.New()
