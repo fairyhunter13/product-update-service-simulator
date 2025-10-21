@@ -220,6 +220,10 @@ jobs:
         run: make reports-coverage-html
       - name: Render HTML reports
         run: make reports-html
+      - name: Generate Codecov graphs page
+        env:
+          CODECOV_GRAPH_TOKEN: ${{ secrets.CODECOV_GRAPH_TOKEN }}
+        run: make pages-codecov-graphs
       - name: Publish API docs (OpenAPI + Swagger UI)
         run: make pages-openapi
       - name: Configure Pages

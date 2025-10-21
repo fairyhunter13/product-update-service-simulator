@@ -150,12 +150,12 @@ security-hadolint:
 # Reports (JUnit + HTML)
 reports-unit-junit:
 	mkdir -p reports/unit
-	set -o pipefail; go test -v ./internal/... 2>&1 | $(GOBIN)/go-junit-report -set-exit-code -out reports/unit/unit.xml
+	set -o pipefail; go test -v ./internal/... 2>&1 | $(GOBIN)/go-junit-report -set-exit-code -out reports/unit/junit.xml
 
 reports-integration-junit:
 	mkdir -p reports/integration
 	$(MAKE) compose-up
-	set -o pipefail; docker compose run --rm itest 2>&1 | $(GOBIN)/go-junit-report -set-exit-code -out reports/integration/integration.xml
+	set -o pipefail; docker compose run --rm itest 2>&1 | $(GOBIN)/go-junit-report -set-exit-code -out reports/integration/junit.xml
 	$(MAKE) compose-down
 
 reports-coverage-html:
@@ -177,6 +177,57 @@ reports-html:
 	  cp _site/integration.html _site/$$VERSION/integration.html; \
 	  if [ -f _site/coverage.html ]; then cp _site/coverage.html _site/$$VERSION/coverage.html; fi; \
 	  cp -r reports _site/
+
+# Publish Codecov graphs page to Pages (requires Codecov Graph Token; falls back to example token)
+pages-codecov-graphs:
+    mkdir -p _site
+    TOKEN=$${CODECOV_GRAPH_TOKEN:-BI7P8IRTKO}; \
+    cat > _site/codecov.html <<EOF
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Codecov Graphs</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'; margin: 16px; }
+      h1 { margin-bottom: 8px; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: start; }
+      .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+      .card h2 { margin: 0 0 8px 0; font-size: 1rem; color: #111827; }
+      img { width: 100%; height: auto; }
+      .links { margin-top: 16px; }
+      .links a { margin-right: 12px; }
+    </style>
+  </head>
+  <body>
+    <h1>Codecov Graphs</h1>
+    <div class="links">
+      <a href="https://codecov.io/gh/fairyhunter13/product-update-service-simulator" target="_blank" rel="noopener">Codecov Dashboard</a>
+      <a href="coverage.html">Local Coverage HTML</a>
+      <a href="unit.html">Unit Report</a>
+      <a href="integration.html">Integration Report</a>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <h2>Sunburst</h2>
+        <img alt="Codecov Sunburst Graph" src="https://codecov.io/gh/fairyhunter13/product-update-service-simulator/graphs/sunburst.svg?token=$${TOKEN}" />
+      </div>
+      <div class="card">
+        <h2>Grid</h2>
+        <img alt="Codecov Grid (Tree) Graph" src="https://codecov.io/gh/fairyhunter13/product-update-service-simulator/graphs/tree.svg?token=$${TOKEN}" />
+      </div>
+      <div class="card">
+        <h2>Icicle</h2>
+        <img alt="Codecov Icicle Graph" src="https://codecov.io/gh/fairyhunter13/product-update-service-simulator/graphs/icicle.svg?token=$${TOKEN}" />
+      </div>
+    </div>
+  </body>
+</html>
+EOF
+    VERSION=$$(git describe --tags --exact-match 2>/dev/null || echo latest); \
+      mkdir -p _site/$$VERSION; \
+      cp _site/codecov.html _site/$$VERSION/codecov.html
 
 # Publish OpenAPI + Swagger UI to Pages
 pages-openapi:

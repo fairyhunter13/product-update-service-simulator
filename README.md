@@ -271,12 +271,13 @@ docker compose down -v
 - **Dashboard**: https://fairyhunter13.github.io/product-update-service-simulator/
 - **Unit only**: https://fairyhunter13.github.io/product-update-service-simulator/unit.html
 - **Integration only**: https://fairyhunter13.github.io/product-update-service-simulator/integration.html
-- **Coverage (HTML)**: https://fairyhunter13.github.io/product-update-service-simulator/coverage.html
+- **Coverage (Codecov)**: https://codecov.io/gh/fairyhunter13/product-update-service-simulator
 - **Versioned (latest) - Unit**: https://fairyhunter13.github.io/product-update-service-simulator/latest/unit.html
 - **Versioned (latest) - Integration**: https://fairyhunter13.github.io/product-update-service-simulator/latest/integration.html
-- **Versioned (latest) - Coverage**: https://fairyhunter13.github.io/product-update-service-simulator/latest/coverage.html
-- **Raw JUnit XML (unit)**: https://fairyhunter13.github.io/product-update-service-simulator/reports/unit/unit.xml
-- **Raw JUnit XML (integration)**: https://fairyhunter13.github.io/product-update-service-simulator/reports/integration/integration.xml
+- **Raw JUnit XML (unit)**: https://fairyhunter13.github.io/product-update-service-simulator/reports/unit/junit.xml
+- **Raw JUnit XML (integration)**: https://fairyhunter13.github.io/product-update-service-simulator/reports/integration/junit.xml
+- **Codecov Graphs (Pages)**: https://fairyhunter13.github.io/product-update-service-simulator/codecov.html
+- **Versioned (latest) - Codecov Graphs**: https://fairyhunter13.github.io/product-update-service-simulator/latest/codecov.html
 - **History by tag**: https://fairyhunter13.github.io/product-update-service-simulator/<tag>/ (e.g., `/v1.0.0/`)
 
 ## CI/CD
@@ -288,8 +289,8 @@ docker compose down -v
   - Integration: docker compose-based integration tests (`make compose-integration`)
   - Container security: image scan via `trivy image`
   - Release: multi-arch build-and-push to GHCR on tags
-  - GitHub Pages: publish unit/integration HTML reports and API docs (OpenAPI + Swagger UI)
-  - Codecov: upload `coverage.out` via `codecov/codecov-action@v4` for coverage badge and history
+  - GitHub Pages: publish unit/integration HTML reports, Codecov graphs page, and API docs (OpenAPI + Swagger UI)
+  - Codecov: upload coverage via `codecov/codecov-action@v5` with flags (`unit`, `integration`); upload JUnit results via `codecov/test-results-action@v1` (Test Analytics)
 
 ### Linting note
 
@@ -341,11 +342,14 @@ COVERAGE_THRESHOLD=85.0 make coverage-enforce
 - **Docker and integration**
   - `make docker-build` — build container image using `build/Dockerfile`
   - `make compose-integration` — bring up app, run integration tests, then tear down
+  - `make compose-integration-coverage` — run integration tests with coverage profile written to `integration.coverage.out`
   
   Example:
   ```bash
   make docker-build
   make compose-integration
+  # with coverage profile
+  make compose-integration-coverage
   ```
 
 - **Security scans**
@@ -369,6 +373,7 @@ COVERAGE_THRESHOLD=85.0 make coverage-enforce
   - `make reports-integration-junit` — integration test JUnit XML (via compose)
   - `make reports-coverage-html` — generate coverage HTML into `_site/` (also versioned when publishing)
   - `make reports-html` — render HTML reports to `_site/` (also versioned)
+  - `make pages-codecov-graphs` — generate Codecov graphs page into `_site/` and versioned copy (uses `CODECOV_GRAPH_TOKEN` secret if available)
   - `make pages-openapi` — publish OpenAPI YAML and Swagger UI to `_site/api/`
   
   Example:
