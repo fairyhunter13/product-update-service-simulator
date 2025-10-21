@@ -121,8 +121,8 @@ security-gosec:
 security-trivy-fs:
 	docker run --rm -v $(PWD):/src -w /src aquasec/trivy:latest fs --no-progress --exit-code 1 --severity HIGH,CRITICAL .
 
-# Image scan (expects docker-build already executed)
-security-trivy-image:
+# Image scan (build image first so it exists on the runner/local machine)
+security-trivy-image: docker-build
 	docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --no-progress --exit-code 1 --severity HIGH,CRITICAL product-update-service-simulator:ci
 
 # Secret scanning via gitleaks (optional but recommended)
